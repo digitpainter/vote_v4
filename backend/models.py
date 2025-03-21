@@ -1,8 +1,9 @@
-from sqlalchemy import ForeignKey, DateTime,Integer, String, Column ,UniqueConstraint
+from sqlalchemy import ForeignKey, DateTime, Integer, String, Column, UniqueConstraint, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from datetime import datetime
 from database import Base
+from enum import Enum
 
 class VoteActivity(Base):
     __tablename__ = "vote_activities"
@@ -12,6 +13,7 @@ class VoteActivity(Base):
     description: Mapped[str] = mapped_column(String(500))
     start_time: Mapped[datetime] = mapped_column(DateTime)
     end_time: Mapped[datetime] = mapped_column(DateTime)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=False, server_default='0')
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     candidates: Mapped[list["Candidate"]] = relationship(
         "Candidate",
@@ -20,6 +22,15 @@ class VoteActivity(Base):
         secondaryjoin="Candidate.id == Vote.candidate_id",
         viewonly=True
     )
+
+    @classmethod
+    def deactivate_others(cls, db, exclude_id=None):
+        """Deactivates all other active activities except current one"""
+        query = db.query(cls).filter(cls.is_active == True)
+        if exclude_id is not None:
+            query = query.filter(cls.id != exclude_id)
+        query.update({'is_active': False})
+        db.flush()
 
 class Candidate(Base):
     __tablename__ = "candidates"
