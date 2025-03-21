@@ -19,7 +19,7 @@ A full-stack web application built with React (Vite) frontend and FastAPI backen
 ### Backend
 1. Create conda environment: `conda env create -f environment.yml`
 2. Activate environment: `conda activate vote_backend`
-3. Start server: `uvicorn main:app --reload`
+3. Start server: `fastapi dev main.py`
 
 ### Database
 MySQL database configuration:
