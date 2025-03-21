@@ -225,3 +225,106 @@ def create_activity(activity: ActivityCreate, db: Session = Depends(get_db)):
 @app.get("/activities/", response_model=List[ActivityResponse])
 def get_activities(db: Session = Depends(get_db)):
     return db.query(VoteActivity).all()
+
+@app.put("/activities/{activity_id}", response_model=ActivityResponse)
+def update_activity(activity_id: int, activity: ActivityCreate, db: Session = Depends(get_db)):
+    try:
+        db_activity = db.query(VoteActivity).filter(VoteActivity.id == activity_id).first()
+        if not db_activity:
+            raise HTTPException(status_code=404, detail="Activity not found")
+
+        db_activity.title = activity.title
+        db_activity.description = activity.description
+        db_activity.start_time = activity.start_time
+        db_activity.end_time = activity.end_time
+
+        db.commit()
+        db.refresh(db_activity)
+        return db_activity
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/activities/{activity_id}")
+def delete_activity(activity_id: int, db: Session = Depends(get_db)):
+    try:
+        db_activity = db.query(VoteActivity).filter(VoteActivity.id == activity_id).first()
+        if not db_activity:
+            raise HTTPException(status_code=404, detail="Activity not found")
+
+        # Delete associated votes first
+        db.query(Vote).filter(Vote.activity_id == activity_id).delete()
+        db.delete(db_activity)
+        db.commit()
+        return {"message": "Activity deleted successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/candidates/{candidate_id}", response_model=UserResponse)
+def update_candidate(candidate_id: int, user: UserCreate, db: Session = Depends(get_db)):
+    try:
+        logger.info(f"Updating candidate: ID {candidate_id}")
+        db_candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+        if not db_candidate:
+            logger.warning(f"Candidate not found: ID {candidate_id}")
+            raise HTTPException(status_code=404, detail="Candidate not found")
+
+        # Check if the new name already exists for another candidate
+        if user.name != db_candidate.name:
+            existing_candidate = db.query(Candidate).filter(Candidate.name == user.name).first()
+            if existing_candidate:
+                raise HTTPException(status_code=400, detail="Name already exists")
+
+        # Update candidate attributes
+        db_candidate.name = user.name
+        db_candidate.college_id = user.college_id
+        db_candidate.photo = user.photo
+        db_candidate.bio = user.bio
+        db_candidate.college_name = user.college_name
+        db_candidate.quote = user.quote
+        db_candidate.review = user.review
+        db_candidate.video_url = user.video_url
+
+        db.commit()
+        db.refresh(db_candidate)
+        
+        vote_count = db.query(Vote).filter(Vote.candidate_id == candidate_id).count()
+        logger.info(f"Candidate updated successfully: ID {candidate_id}")
+        
+        return UserResponse(
+            id=db_candidate.id,
+            name=db_candidate.name,
+            college_id=db_candidate.college_id,
+            photo=db_candidate.photo,
+            bio=db_candidate.bio,
+            college_name=db_candidate.college_name,
+            vote_count=vote_count
+        )
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Error updating candidate: {str(e)}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.delete("/candidates/{candidate_id}")
+def delete_candidate(candidate_id: int, db: Session = Depends(get_db)):
+    try:
+        logger.info(f"Deleting candidate: ID {candidate_id}")
+        db_candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+        if not db_candidate:
+            logger.warning(f"Candidate not found: ID {candidate_id}")
+            raise HTTPException(status_code=404, detail="Candidate not found")
+
+        # Delete associated votes first
+        db.query(Vote).filter(Vote.candidate_id == candidate_id).delete()
+        db.delete(db_candidate)
+        db.commit()
+        
+        logger.info(f"Candidate deleted successfully: ID {candidate_id}")
+        return {"message": "Candidate deleted successfully"}
+    except Exception as e:
+        logger.error(f"Error deleting candidate: {str(e)}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Internal server error")

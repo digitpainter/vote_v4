@@ -13,7 +13,13 @@ class VoteActivity(Base):
     start_time: Mapped[datetime] = mapped_column(DateTime)
     end_time: Mapped[datetime] = mapped_column(DateTime)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    candidates: Mapped[list["Candidate"]] = relationship("Candidate", back_populates="activity")
+    candidates: Mapped[list["Candidate"]] = relationship(
+        "Candidate",
+        secondary="votes",  # 使用votes表作为关联表
+        primaryjoin="VoteActivity.id == Vote.activity_id",
+        secondaryjoin="Candidate.id == Vote.candidate_id",
+        viewonly=True
+    )
 
 class Candidate(Base):
     __tablename__ = "candidates"
