@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -10,8 +10,12 @@ from database import SessionLocal, Base
 import logging
 from logging.handlers import RotatingFileHandler
 from fastapi import Request
+from auth import router as auth_router
 
 app = FastAPI()
+
+# Include the auth router
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
 
 # Initialize database tables
 from database import init_db
