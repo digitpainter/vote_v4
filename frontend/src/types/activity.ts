@@ -1,4 +1,5 @@
 export interface Activity {
+    candidate_ids: string[];
     id: number;
     title: string;
     description: string;

@@ -19,6 +19,15 @@ class VoteActivity(Base):
         back_populates="activity"
     )
 
+    @classmethod
+    def deactivate_others(cls, db, exclude_id=None):
+        """Deactivates all other active activities except current one"""
+        query = db.query(cls).filter(cls.is_active == True)
+        if exclude_id is not None:
+            query = query.filter(cls.id != exclude_id)
+        query.update({'is_active': False})
+        db.flush()
+
 class ActivityCandidateAssociation(Base):
     __tablename__ = "activity_candidate_association"
 
@@ -29,14 +38,7 @@ class ActivityCandidateAssociation(Base):
     activity: Mapped["VoteActivity"] = relationship(back_populates="associations")
     candidate: Mapped["Candidate"] = relationship(back_populates="associations")
 
-    @classmethod
-    def deactivate_others(cls, db, exclude_id=None):
-        """Deactivates all other active activities except current one"""
-        query = db.query(cls).filter(cls.is_active == True)
-        if exclude_id is not None:
-            query = query.filter(cls.id != exclude_id)
-        query.update({'is_active': False})
-        db.flush()
+
 
 class Candidate(Base):
     __tablename__ = "candidates"

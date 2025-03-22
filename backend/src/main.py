@@ -1,9 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 from logging.handlers import RotatingFileHandler
 from fastapi import Request
 from datetime import datetime
+from typing import Optional, List
 
 from .auth.router import router as auth_router
 from .admin.router import router as admin_router
@@ -39,6 +40,7 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
 
 # Health check endpoint
 @app.get("/")

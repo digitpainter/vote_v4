@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -27,9 +27,14 @@ def create_user(user: UserCreate, db: Session = Depends(get_db), _= check_roles(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/candidates/", response_model=List[UserResponse])
-def get_candidates(db: Session = Depends(get_db)):
-    candidates = VoteService.get_candidates(db)
+
+@router.get("/candidates/batch", response_model=List[UserResponse])
+def get_candidates_batch(
+    candidate_ids: List[int] = Query(None, title="Candidate IDs to filter"),
+    db: Session = Depends(get_db)
+):
+    """Batch retrieve candidate details by IDs"""
+    candidates = VoteService.get_candidates(db, candidate_ids=candidate_ids)
     candidate_responses = []
     for candidate in candidates:
         vote_count = db.query(Vote).filter(Vote.candidate_id == candidate.id).count()

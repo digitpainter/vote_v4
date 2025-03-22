@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from datetime import datetime
-from fastapi import HTTPException
+from fastapi import HTTPException, Query
+from typing import Optional, List
 import logging
 from logging.handlers import RotatingFileHandler
 
@@ -40,8 +41,11 @@ class VoteService:
             raise ValueError(str(e))
 
     @staticmethod
-    def get_candidates(db: Session):
-        return db.query(Candidate).all()
+    def get_candidates(db: Session, candidate_ids: Optional[List[int]] = None):
+        query = db.query(Candidate)
+        if candidate_ids:
+            query = query.filter(Candidate.id.in_(candidate_ids))
+        return query.all()
 
     @staticmethod
     def create_vote(db: Session, candidate_id: int, voter_id: int, activity_id: int):
@@ -86,6 +90,8 @@ class VoteService:
             )
             db.add(db_activity)
             db.flush()
+            if activity.is_active:
+                VoteActivity.deactivate_others(db, exclude_id=db_activity.id)
             for candidate_id in activity.candidate_ids:
                 association = ActivityCandidateAssociation(
                     activity_id=db_activity.id,
@@ -161,6 +167,10 @@ class VoteService:
             db_activity.description = activity.description
             db_activity.start_time = activity.start_time
             db_activity.end_time = activity.end_time
+            db_activity.is_active = activity.is_active
+
+            if activity.is_active:
+                VoteActivity.deactivate_others(db, exclude_id=activity_id)
             db.commit()
             db.refresh(db_activity)
             return {
