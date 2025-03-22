@@ -67,6 +67,10 @@ def create_activity(activity: ActivityCreate, db: Session = Depends(get_db)):
 def get_activities(db: Session = Depends(get_db)):
     return VoteService.get_activities(db)
 
+@router.get("/activities/active/", response_model=List[ActivityResponse])
+def get_active_activities(db: Session = Depends(get_db)):
+    return VoteService.get_active_activities(db)
+
 @router.put("/activities/{activity_id}", response_model=ActivityResponse)
 def update_activity(activity_id: int, activity: ActivityCreate, db: Session = Depends(get_db)):
     try:

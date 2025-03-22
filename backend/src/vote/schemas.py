@@ -45,6 +45,6 @@ class ActivityResponse(BaseModel):
     start_time: datetime
     end_time: datetime
     created_at: datetime
-
+    is_active: bool
     class Config:
         orm_mode = True

@@ -1,23 +1,35 @@
-import { useState, useEffect } from 'react'
 import './App.css'
+import { useContext } from 'react'
+import { ActivityProvider, useActivity } from './contexts/ActivityContext'
 
-interface Candidate {
-  id: number
-  name: string
-  college_id: number
-  photo: string
-  bio: string
-  college_name: string
-  created_at: string
-  vote_count: number
+function ActivityList() {
+  const { activeActivities, loading, error } = useActivity();
+
+  if (loading) return <div>Loading activities...</div>;
+  if (error) return <div>Error: {error}</div>;
+
+  return (
+    <div>
+      <h2>Active Activities</h2>
+      <div className="activities-list">
+        {activeActivities.map((activity) => (
+          <div key={activity.id} className="activity-item">
+            <h3>{activity.title}</h3>
+            <p>{activity.description}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function App() {
-
   return (
-    <div className="container">
-    
-    </div>
+    <ActivityProvider>
+      <div className="container">
+        <ActivityList />
+      </div>
+    </ActivityProvider>
   )
 }
 

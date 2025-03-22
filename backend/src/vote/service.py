@@ -94,6 +94,12 @@ class VoteService:
         return db.query(VoteActivity).all()
 
     @staticmethod
+    def get_active_activities(db: Session):
+        return db.query(VoteActivity).filter(
+            VoteActivity.is_active == True,
+        ).all()
+
+    @staticmethod
     def update_activity(db: Session, activity_id: int, activity: ActivityCreate):
         db_activity = db.query(VoteActivity).filter(VoteActivity.id == activity_id).first()
         if not db_activity:
