@@ -4,7 +4,9 @@ from fastapi import HTTPException
 import logging
 from logging.handlers import RotatingFileHandler
 
-from ..models import Candidate, Vote, VoteActivity
+from sqlalchemy.sql.operators import is_associative
+
+from ..models import Candidate, Vote, VoteActivity, ActivityCandidateAssociation
 from .schemas import UserCreate, ActivityCreate
 
 class VoteService:
@@ -79,25 +81,61 @@ class VoteService:
                 title=activity.title,
                 description=activity.description,
                 start_time=activity.start_time,
-                end_time=activity.end_time
+                end_time=activity.end_time,
+                is_active=activity.is_active
             )
             db.add(db_activity)
+            db.flush()
+            for candidate_id in activity.candidate_ids:
+                association = ActivityCandidateAssociation(
+                    activity_id=db_activity.id,
+                    candidate_id=candidate_id
+                )
+                db.add(association)
             db.commit()
             db.refresh(db_activity)
-            return db_activity
+            return {
+                "id": db_activity.id,
+                "title": db_activity.title,
+                "description": db_activity.description,
+                "start_time": db_activity.start_time,
+                "end_time": db_activity.end_time,
+                "is_active": db_activity.is_active,
+                "candidate_ids": activity.candidate_ids
+            }
         except Exception as e:
             db.rollback()
             raise ValueError(str(e))
 
     @staticmethod
     def get_activities(db: Session):
-        return db.query(VoteActivity).all()
+        return [
+            {
+                "id": activity.id,
+                "title": activity.title,
+                "description": activity.description,
+                "start_time": activity.start_time,
+                "end_time": activity.end_time,
+                "is_active": activity.is_active,
+                "candidate_ids": [assoc.candidate_id for assoc in activity.associations]
+            }
+            for activity in db.query(VoteActivity).all()
+        ]
 
     @staticmethod
     def get_active_activities(db: Session):
-        return db.query(VoteActivity).filter(
-            VoteActivity.is_active == True,
-        ).all()
+        return [
+            {
+                "id": activity.id,
+                "title": activity.title,
+                "description": activity.description,
+                "start_time": activity.start_time,
+                "end_time": activity.end_time,
+                "is_active": activity.is_active,
+                "candidate_ids": [assoc.candidate_id for assoc in activity.associations]
+            }
+            for activity in db.query(VoteActivity).filter(VoteActivity.is_active == True).all()
+        ]
 
     @staticmethod
     def update_activity(db: Session, activity_id: int, activity: ActivityCreate):
@@ -106,13 +144,34 @@ class VoteService:
             raise ValueError("Activity not found")
 
         try:
+            # Clear existing associations
+            db.query(ActivityCandidateAssociation).filter(
+                ActivityCandidateAssociation.activity_id == activity_id
+            ).delete()
+
+            # Add new associations
+            for candidate_id in activity.candidate_ids:
+                association = ActivityCandidateAssociation(
+                    activity_id=activity_id,
+                    candidate_id=candidate_id
+                )
+                db.add(association)
+
             db_activity.title = activity.title
             db_activity.description = activity.description
             db_activity.start_time = activity.start_time
             db_activity.end_time = activity.end_time
             db.commit()
             db.refresh(db_activity)
-            return db_activity
+            return {
+                "id": db_activity.id,
+                "title": db_activity.title,
+                "description": db_activity.description,
+                "start_time": db_activity.start_time,
+                "end_time": db_activity.end_time,
+                "is_active": db_activity.is_active,
+                "candidate_ids": [assoc.candidate_id for assoc in db_activity.associations]
+            }
         except Exception as e:
             db.rollback()
             raise ValueError(str(e))

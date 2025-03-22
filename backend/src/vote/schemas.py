@@ -37,6 +37,8 @@ class ActivityCreate(BaseModel):
     description: str
     start_time: datetime
     end_time: datetime
+    is_active: bool
+    candidate_ids: List[int]
 
 class ActivityResponse(BaseModel):
     id: int
@@ -44,7 +46,7 @@ class ActivityResponse(BaseModel):
     description: str
     start_time: datetime
     end_time: datetime
-    created_at: datetime
     is_active: bool
+    candidate_ids: List[int]
     class Config:
         orm_mode = True

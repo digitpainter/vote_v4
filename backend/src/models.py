@@ -15,13 +15,19 @@ class VoteActivity(Base):
     end_time: Mapped[datetime] = mapped_column(DateTime)
     is_active: Mapped[bool] = mapped_column(Boolean, default=False, server_default='0')
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    candidates: Mapped[list["Candidate"]] = relationship(
-        "Candidate",
-        secondary="votes",  # 使用votes表作为关联表
-        primaryjoin="VoteActivity.id == Vote.activity_id",
-        secondaryjoin="Candidate.id == Vote.candidate_id",
-        viewonly=True
+    associations: Mapped[list["ActivityCandidateAssociation"]] = relationship(
+        back_populates="activity"
     )
+
+class ActivityCandidateAssociation(Base):
+    __tablename__ = "activity_candidate_association"
+
+    activity_id: Mapped[int] = mapped_column(ForeignKey("vote_activities.id"), primary_key=True)
+    candidate_id: Mapped[int] = mapped_column(ForeignKey("candidates.id"), primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    activity: Mapped["VoteActivity"] = relationship(back_populates="associations")
+    candidate: Mapped["Candidate"] = relationship(back_populates="associations")
 
     @classmethod
     def deactivate_others(cls, db, exclude_id=None):
@@ -46,6 +52,9 @@ class Candidate(Base):
     video_url: Mapped[str] = mapped_column(String(200), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     votes: Mapped["Vote"] = relationship("Vote", back_populates="candidate")
+    associations: Mapped[list["ActivityCandidateAssociation"]] = relationship(
+        back_populates="candidate"
+    )
 
 class Vote(Base):
     __tablename__ = "votes"
@@ -78,4 +87,4 @@ class Administrator(Base):
 
     __table_args__ = (
         UniqueConstraint('stuff_id', 'admin_type', 'college_id', name='uq_admin'),
-    ) 
+    )
