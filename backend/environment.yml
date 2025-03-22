@@ -12,3 +12,4 @@ dependencies:
     - pymysql>=1.1.0
     - python-dotenv>=1.0.0
     - pydantic>=2.1.0
+    - redis>=4.5.5

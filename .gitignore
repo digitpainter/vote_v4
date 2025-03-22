@@ -1,2 +1,11 @@
+backend/__pycache__/models.cpython-311.pyc
+backend/__pycache__/main.cpython-311.pyc
+backend/__pycache__/database.cpython-311.pyc
+backend/__pycache__/models.cpython-312.pyc
+backend/__pycache__/main.cpython-312.pyc
+backend/__pycache__/database.cpython-312.pyc
 backend/app.log
-backend/__pycache__/*
+backend/backend/
+
+backend/__pycache__/__init__.cpython-312.pyc
+backend/__pycache__/database.cpython-312.pyc

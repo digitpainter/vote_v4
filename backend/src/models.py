@@ -2,7 +2,7 @@ from sqlalchemy import ForeignKey, DateTime, Integer, String, Column, UniqueCons
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from datetime import datetime
-from database import Base
+from .database import Base
 from enum import Enum
 
 class VoteActivity(Base):
@@ -60,3 +60,22 @@ class Vote(Base):
     __table_args__ = (
         UniqueConstraint('activity_id', 'candidate_id', 'voter_id', name='uq_vote_record'),
     )
+
+
+class AdminType(str, Enum):
+    SCHOOL = "school"
+    COLLEGE = "college"
+
+class Administrator(Base):
+    __tablename__ = "administrators"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    stuff_id: Mapped[str] = mapped_column(String(50))
+    admin_type: Mapped[AdminType] = mapped_column(String(10))
+    college_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    college_name: Mapped[str] = mapped_column(String(100), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint('stuff_id', 'admin_type', 'college_id', name='uq_admin'),
+    ) 
