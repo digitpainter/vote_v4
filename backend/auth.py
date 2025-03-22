@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from database import SessionLocal
 import httpx
 from urllib.parse import urlencode
+import re
 
 router = APIRouter()
 
@@ -18,13 +19,25 @@ SERVICE_URL = "http://localhost:8000/auth/cas-callback"
 user_sessions = {}
 
 class UserSession(BaseModel):
-    student_id: str
+    staff_id: str
     username: str
     access_token: str
+    role: str
 
 class CASResponse(BaseModel):
-    student_id: str
+    staff_id: str
     username: str
+    role: str
+
+def determine_user_role(username: str) -> str:
+    """Determine user role based on username pattern"""
+    if re.match(r'^\d{9}$', username):
+        return 'undergraduate'
+    elif re.match(r'^S\d{9}$', username):
+        return 'graduate'
+    elif re.match(r'^\d{7}$', username):
+        return 'teacher'
+    return 'unknown'
 
 # Dependency to get database session
 def get_db():
@@ -83,27 +96,33 @@ async def cas_callback(ticket: str, request: Request, response: Response):
                 
             if 'id' not in user_info or 'username' not in user_info:
                 raise HTTPException(status_code=500, detail="Missing required user information from CAS server")
+            
+            # Determine user role based on username pattern
+            role = determine_user_role(user_info['username'])
                 
             user_data = CASResponse(
-                student_id=str(user_info['id']),
-                username=user_info['username']
+                staff_id=str(user_info['id']),
+                username=user_info['username'],
+                role=role
             )
             
             # Generate session token
-            access_token = f"session_{user_data.student_id}"  # In production, use secure token generation
+            access_token = f"session_{user_data.staff_id}"  # In production, use secure token generation
             
-            # Store session
+            # Store session with role information
             user_sessions[access_token] = UserSession(
-                student_id=user_data.student_id,
+                staff_id=user_data.staff_id,
                 username=user_data.username,
-                access_token=access_token
+                access_token=access_token,
+                role=role
             )
             
-            print(f"Successfully authenticated user: {user_data.username}")
+            print(f"Successfully authenticated user: {user_data.username} with role: {role}")
             return {
                 "access_token": access_token,
-                "student_id": user_data.student_id,
-                "username": user_data.username
+                "staff_id": user_data.staff_id,
+                "username": user_data.username,
+                "role": role
             }
             
     except Exception as e:
