@@ -1,11 +1,35 @@
-backend/__pycache__/models.cpython-311.pyc
-backend/__pycache__/main.cpython-311.pyc
-backend/__pycache__/database.cpython-311.pyc
-backend/__pycache__/models.cpython-312.pyc
-backend/__pycache__/main.cpython-312.pyc
-backend/__pycache__/database.cpython-312.pyc
-backend/app.log
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs
+*.log
+logs/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Environment
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Frontend
+node_modules/
+.npm
+.DS_Store
+*.local
+
+# Project specific
 backend/backend/
 
-backend/__pycache__/__init__.cpython-312.pyc
-backend/__pycache__/database.cpython-312.pyc
