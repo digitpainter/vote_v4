@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { Layout } from 'antd';
 import { useActivity } from '../contexts/ActivityContext';
 const { Header } = Layout;
@@ -13,7 +12,8 @@ export function HeaderComponent() {
     >
       <div className="flex flex-col items-center mt-[80px]">
         <img src="/image/logo.svg" className="w-[256px] h-[68px] mb-6" />
-        <div className="text-white font-bold drop-shadow-md max-md:text-[30px] md:text-[48px] font-pu-hui text-center w-full">
+        <div className="text-white drop-shadow-md max-md:text-[30px] md:text-[48px]
+         text-center w-full tracking-wider font-serif font-bold">
           {activeActivities?.length > 0 ? activeActivities[0].title : '活动标题'}
         </div>
       </div>
