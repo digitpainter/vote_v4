@@ -10,7 +10,7 @@ import { ContentArea } from './components/ContentArea';
 function App() {
   return (
     <ConfigProvider theme={{ token: { colorPrimary: '#1890ff' } }}>
-      <Layout>
+      <Layout className='p-20px'>
         <ActivityProvider>
           <HeaderComponent />
           <ContentArea />
