@@ -1,9 +1,11 @@
 export interface Candidate {
-    candidate_id: string;
+    id: string;
     name: string;
-    description: string;
-    department: string;
-    photo_url?: string;
+    bio: string;
+    college_id: number;
+    college_name: string;
+    photo: string;
+    vote_count: number;
     created_at: string;
     updated_at: string;
 }

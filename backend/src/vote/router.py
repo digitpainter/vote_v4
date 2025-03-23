@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List
 
-from .schemas import UserCreate, UserResponse, VoteRecord, ActivityCreate, ActivityResponse
+from .schemas import CandidateCreate, CandidateResponse, VoteRecord, ActivityCreate, ActivityResponse
 from .service import VoteService
 from ..database import get_db
 from ..auth.dependencies import check_roles
@@ -10,12 +10,12 @@ from ..models import  Vote
 
 router = APIRouter()
 
-@router.post("/candidates/", response_model=UserResponse)
-def create_user(user: UserCreate, db: Session = Depends(get_db), _= check_roles(allowed_admin_types=["school"])):
+@router.post("/candidates/", response_model=CandidateResponse)
+def create_user(user: CandidateCreate, db: Session = Depends(get_db), _= check_roles(allowed_admin_types=["school"])):
     try:
         db_user = VoteService.create_candidate(db, user)
         vote_count = db.query(Vote).filter(Vote.candidate_id == db_user.id).count()
-        return UserResponse(
+        return CandidateResponse(
             id=db_user.id,
             name=db_user.name,
             college_id=db_user.college_id,
@@ -28,7 +28,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db), _= check_roles(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/candidates/batch", response_model=List[UserResponse])
+@router.get("/candidates/batch", response_model=List[CandidateResponse])
 def get_candidates_batch(
     candidate_ids: List[int] = Query(None, title="Candidate IDs to filter"),
     db: Session = Depends(get_db)
@@ -38,7 +38,7 @@ def get_candidates_batch(
     candidate_responses = []
     for candidate in candidates:
         vote_count = db.query(Vote).filter(Vote.candidate_id == candidate.id).count()
-        candidate_responses.append(UserResponse(
+        candidate_responses.append(CandidateResponse(
             id=candidate.id,
             name=candidate.name,
             college_id=candidate.college_id,
@@ -91,12 +91,12 @@ def delete_activity(activity_id: int, db: Session = Depends(get_db), _= check_ro
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.put("/candidates/{candidate_id}", response_model=UserResponse)
-def update_candidate(candidate_id: int, user: UserCreate, db: Session = Depends(get_db)):
+@router.put("/candidates/{candidate_id}", response_model=CandidateResponse)
+def update_candidate(candidate_id: int, user: CandidateCreate, db: Session = Depends(get_db)):
     try:
         db_candidate = VoteService.update_candidate(db, candidate_id, user)
         vote_count = db.query(Vote).filter(Vote.candidate_id == candidate_id).count()
-        return UserResponse(
+        return CandidateResponse(
             id=db_candidate.id,
             name=db_candidate.name,
             college_id=db_candidate.college_id,

@@ -10,6 +10,7 @@ from .auth.router import router as auth_router
 from .admin.router import router as admin_router
 from .vote.router import router as vote_router
 from .database import init_db
+from backend.src import database
 
 app = FastAPI()
 
@@ -50,9 +51,9 @@ def read_root():
 # Request logging middleware
 @app.middleware('http')
 async def log_requests(request: Request, call_next):
-    start_time = datetime.utcnow()
+    start_time = datetime.now()
     response = await call_next(request)
-    process_time = (datetime.utcnow() - start_time).total_seconds() * 1000
+    process_time = (datetime.now() - start_time).total_seconds() * 1000
     logger.info(
         f"Method={request.method} Path={request.url.path} "
         f"Status={response.status_code} Duration={process_time:.2f}ms"

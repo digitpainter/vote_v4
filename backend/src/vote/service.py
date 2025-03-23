@@ -8,7 +8,7 @@ from logging.handlers import RotatingFileHandler
 from sqlalchemy.sql.operators import is_associative
 
 from ..models import Candidate, Vote, VoteActivity, ActivityCandidateAssociation
-from .schemas import UserCreate, ActivityCreate
+from .schemas import CandidateCreate, ActivityCreate
 
 class VoteService:
     # Configure logging
@@ -20,7 +20,7 @@ class VoteService:
     logger.addHandler(handler)
 
     @staticmethod
-    def create_candidate(db: Session, candidate: UserCreate):
+    def create_candidate(db: Session, candidate: CandidateCreate):
         try:
             db_candidate = Candidate(
                 name=candidate.name,
@@ -81,6 +81,7 @@ class VoteService:
     @staticmethod
     def create_activity(db: Session, activity: ActivityCreate):
         try:
+            print(activity.start_time)
             db_activity = VoteActivity(
                 title=activity.title,
                 description=activity.description,
@@ -202,7 +203,7 @@ class VoteService:
             raise ValueError(str(e))
 
     @staticmethod
-    def update_candidate(db: Session, candidate_id: int, candidate: UserCreate):
+    def update_candidate(db: Session, candidate_id: int, candidate: CandidateCreate):
         db_candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
         if not db_candidate:
             raise ValueError("Candidate not found")

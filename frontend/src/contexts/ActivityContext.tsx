@@ -21,7 +21,7 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
 
     const fetchCandidates = async (candidateIds: string[]) => {
         try {
-            console.debug(`[API Request][${new Date().toISOString()}] Fetching candidates with IDs: ${candidateIds.join(', ')}`);
+            console.debug(`[API Request][${new Date().toLocaleString()}] Fetching candidates with IDs: ${candidateIds.join(', ')}`);
             const url = new URL('http://localhost:8000/vote/candidates/batch/');
             candidateIds.forEach(id => url.searchParams.append('candidate_ids', id));
             const response = await fetch(url.toString(), {
@@ -30,14 +30,14 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
                 },
             });
 
-            console.debug(`[API Response][${new Date().toISOString()}] Candidates fetch status: ${response.status}, content length: ${response.headers.get('Content-Length')}`);
+            console.debug(`[API Response][${new Date().toLocaleString()}] Candidates fetch status: ${response.status}, content length: ${response.headers.get('Content-Length')}`);
 
             if (!response.ok) {
                 throw new Error('Failed to fetch candidates');
             }
 
             const candidatesData = await response.json();
-            console.debug(`[API Data][${new Date().toISOString()}] Received ${candidatesData.length} candidates`);
+            console.debug(`[API Data][${new Date().toLocaleString()}] Received ${candidatesData.length} candidates`);
             return candidatesData;
         } catch (error) {
             console.error('[API Error] Candidate fetch error:', error);
@@ -49,21 +49,21 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
         setLoading(true);
         setError(null);
         try {
-            console.debug(`[API Request][${new Date().toISOString()}] Fetching active activities`);
+            console.debug(`[API Request][${new Date().toLocaleString()}] Fetching active activities`);
             const response = await fetch('http://localhost:8000/vote/activities/active/', {
                 headers: {
                     'Content-Type': 'application/json',
                 },
             });
 
-            console.debug(`[API Response][${new Date().toISOString()}] Activities fetch status: ${response.status}`);
+            console.debug(`[API Response][${new Date().toLocaleString()}] Activities fetch status: ${response.status}`);
 
             if (!response.ok) {
                 throw new Error('Failed to fetch active activities');
             }
 
             const data = await response.json();
-            console.debug(`[API Data][${new Date().toISOString()}] Received ${data.length} activities`);
+            console.debug(`[API Data][${new Date().toLocaleString()}] Received ${data.length} activities`);
             setActiveActivities(data);
             
             // Batch fetch candidates

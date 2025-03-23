@@ -11,8 +11,8 @@ class VoteActivity(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     title: Mapped[str] = mapped_column(String(100))
     description: Mapped[str] = mapped_column(String(500))
-    start_time: Mapped[datetime] = mapped_column(DateTime)
-    end_time: Mapped[datetime] = mapped_column(DateTime)
+    start_time: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    end_time: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     is_active: Mapped[bool] = mapped_column(Boolean, default=False, server_default='0')
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     associations: Mapped[list["ActivityCandidateAssociation"]] = relationship(
@@ -65,7 +65,7 @@ class Vote(Base):
     candidate_id: Mapped[int] = mapped_column(ForeignKey("candidates.id"))
     activity_id: Mapped[int] = mapped_column(ForeignKey("vote_activities.id"), nullable=False)
     voter_id: Mapped[int] = mapped_column(Integer, index=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     candidate: Mapped["Candidate"] = relationship("Candidate", back_populates="votes")
     source: Mapped[str] = mapped_column(String(50), nullable=False)
     __table_args__ = (

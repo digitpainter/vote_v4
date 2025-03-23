@@ -33,3 +33,4 @@ node_modules/
 # Project specific
 backend/backend/
 
+frontend/package-lock.json
