@@ -1,5 +1,5 @@
 import { useActivity } from '../contexts/ActivityContext';
-import { Spin, Alert, Card, Button ,Grid, Row, Col, Flex} from 'antd';
+import { Spin, Alert, Card, Button ,Grid, Row, Col, Flex,Avatar,Typography} from 'antd';
 import { formatDateTime } from '../utils/date';
 
 export function IconRow({ icon, label, value }: { icon: string; label: string; value: string }) {
@@ -58,30 +58,45 @@ export function ActivityList() {
                 {candidates
                   .filter(c => activity.candidate_ids.includes(c.id))
                   .map(candidate => (
-                    <Card key={candidate.id} className="relative">
-                      <div className="max-md:flex max-md:flex-col max-md:items-center md:grid md:grid-cols-[120px_1fr] md:gap-6">
-                        <img 
-                          src={candidate.photo} 
-                          alt={candidate.name}
-                          className="w-32 h-32 object-cover rounded-lg md:w-36 md:h-36"
-                        />
-                        <div className="md:flex md:flex-col md:justify-between">
-                          <div className="text-center md:text-left">
-                            <h4 className="text-xl font-semibold mt-4 md:mt-0 md:text-2xl">{candidate.name}</h4>
-                            <p className="text-gray-600 mt-2 md:mt-1 md:text-lg">学院：{candidate.college_name}</p>
-                            <p className="text-gray-600 mt-2 line-clamp-3 md:line-clamp-4 md:text-base">{candidate.bio}</p>
+                    <Card key={candidate.id} className="relative hover:shadow-lg transition-shadow duration-300 shadow-md">
+                      <Row gutter={[16, 16]} className="w-full">
+                        <Col xs={24} md={6} className="flex justify-center">
+                          <Avatar
+                            src={candidate.photo}
+                            alt={candidate.name}
+                            shape="square"
+                            size={128}
+                            className="rounded-lg object-cover w-32 h-32 md:w-36 md:h-36"
+                          />
+                        </Col>
+                        <Col xs={24} md={18}>
+                          <div className="h-full flex flex-col justify-between">
+                            <Typography.Title level={4} className="!mt-0 !mb-2 !text-gray-800">
+                              {candidate.name}
+                            </Typography.Title>
+                            <Typography.Text type="secondary" className="text-base mb-2">
+                              学院：{candidate.college_name}
+                            </Typography.Text>
+                            <Typography.Paragraph
+                              ellipsis={{ rows: 3, expandable: true }}
+                              className="!text-gray-600 !mb-4"
+                            >
+                              {candidate.bio}
+                            </Typography.Paragraph>
                           </div>
-                        </div>
+                        </Col>
+                      </Row>
                         <div className="absolute top-2 right-2 bg-white bg-opacity-80 px-3 py-1 rounded-full text-sm font-medium shadow-sm">
                           票数：{candidate.vote_count}
                         </div>
-                      </div>
                     </Card>
+                    
                   ))}
               </div>
             </div>
           </div>
         ))}
+      <div></div>
     </div>
   );
 }
