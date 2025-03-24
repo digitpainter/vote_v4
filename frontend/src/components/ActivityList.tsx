@@ -1,7 +1,7 @@
+import { Key, useState } from 'react';
 import {useActivity} from '../contexts/ActivityContext';
 import {Spin, Alert, Card, Row, Col, Avatar, Typography, Table} from 'antd';
 import {formatDateTime} from '../utils/date';
-
 export function IconRow({icon, label, value}: { icon: string; label: string; value: string }) {
   return (
     <div className="flex items-center gap-4 md:gap-6 p-2 md:p-4 flex-1">
@@ -19,6 +19,8 @@ export function IconRow({icon, label, value}: { icon: string; label: string; val
 
 export function ActivityList() {
   const {activeActivities, candidates, loading, error} = useActivity();
+  const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([]);
+  const [expandedRowKey, setExpandedRowKey] = useState<Key | null>(null);
   if (loading) return (
     <Spin tip="Loading..." size="large" fullscreen/>
   );
@@ -97,11 +99,10 @@ export function ActivityList() {
             </div>
           </div>
           <div className="mt-8">
-
-
             <Table
               dataSource={candidates.filter(c => activity.candidate_ids.includes(c.id))}
               columns={[
+                Table.EXPAND_COLUMN,
                 {
                   title: '学院',
                   dataIndex: 'college_name',
@@ -114,9 +115,69 @@ export function ActivityList() {
                   key: 'name',
                   className: 'px-2 md:px-4 whitespace-nowrap'
                 },
+
               ]}
               rowKey="id"
-              className="dir-rtl shadow-md rounded-lg overflow-hidden [&_.ant-table-cell]:py-3 [&_.ant-checkbox-inner]:w-6 [&_.ant-checkbox-inner]:h-6"
+              className="dir-rtl shadow-md rounded-lg overflow-hidden"
+              rowSelection={{
+                type: 'checkbox',
+                selectedRowKeys,
+                onChange: (key) => setSelectedRowKeys(key),
+              }}
+              onRow={(record) => ({
+                onClick: () => {
+                  console.log("click")
+                  const key = record.id;
+                  setSelectedRowKeys(prev =>
+                    prev.includes(key)
+                      ? prev.filter(k => k !== key)
+                      : [...prev, key]
+                  );
+                },
+                onTouchStart: () => {
+                  const key = record.id;
+
+                  const timer = setTimeout(() => {
+                    setExpandedRowKey(prev =>
+                      prev === key
+                        ? null
+                        : key
+                    );
+                  }, 500);
+                  // 保存定时器ID以便清除
+                  // @ts-ignore
+                  event.currentTarget.timer = timer;
+                },
+                onTouchEnd: () => {
+                  // 清除定时器
+                  // @ts-ignore
+                  clearTimeout(event.currentTarget?.timer);
+                },
+              })}
+              expandable={{
+
+                expandedRowRender: (record) => (
+                  <div className="flex gap-4 p-4">
+                    <img 
+                      src={record.photo}
+                      alt={record.name}
+                      className="w-26 h-26 object-cover rounded-lg"
+                    />
+                    <div className="flex-1">
+                      <Typography.Paragraph 
+                        className="text-sm whitespace-pre-wrap"
+                        ellipsis={{ rows: 5 }}
+                      >
+                        {record.bio}
+                      </Typography.Paragraph>
+                    </div>
+                  </div>
+                ),
+                expandedRowKeys: expandedRowKey ? [expandedRowKey] : [],
+                onExpand: (expanded, record) => {
+                  setExpandedRowKey(expanded ? record.id : null);
+                }
+              }}
               pagination={false}
               scroll={{x: true}}
             />
