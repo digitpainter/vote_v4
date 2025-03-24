@@ -1,13 +1,12 @@
-import { ActivityProvider } from '../contexts/ActivityContext';
-import { Layout } from 'antd';
-import { ActivityList } from './ActivityList';
+import {Layout} from 'antd';
+import {ActivityList} from './ActivityList';
 
-const { Content } = Layout;
+const {Content} = Layout;
 
 export function ContentArea() {
-  return (
-    <Content>
-        <ActivityList />
-    </Content>
-  );
+    return (
+        <Content>
+            <ActivityList/>
+        </Content>
+    );
 }

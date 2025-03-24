@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Activity } from '../types/activity';
-import { Candidate } from '../types/candidate';
+import {createContext, useContext, useState, useEffect, ReactNode} from 'react';
+import {Activity} from '../types/activity';
+import {Candidate} from '../types/candidate';
 
 interface ActivityContextType {
     activeActivities: Activity[];
@@ -13,7 +13,7 @@ interface ActivityContextType {
 
 export const ActivityContext = createContext<ActivityContextType | undefined>(undefined);
 
-export function ActivityProvider({ children }: { children: ReactNode }) {
+export function ActivityProvider({children}: { children: ReactNode }) {
     const [activeActivities, setActiveActivities] = useState<Activity[]>([]);
     const [candidates, setCandidates] = useState<Candidate[]>([]);
     const [loading, setLoading] = useState(false);
@@ -65,7 +65,7 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
             const data = await response.json();
             console.debug(`[API Data][${new Date().toLocaleString()}] Received ${data.length} activities`);
             setActiveActivities(data);
-            
+
             // Batch fetch candidates
             const allCandidateIds = data.flatMap((activity: Activity) => activity.candidate_ids);
             if (allCandidateIds.length > 0) {

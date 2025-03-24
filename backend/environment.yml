@@ -13,3 +13,5 @@ dependencies:
     - python-dotenv>=1.0.0
     - pydantic>=2.1.0
     - redis>=4.5.5
+    - redis>=0.1.0
+    - faker>=18.10.0
