@@ -34,3 +34,4 @@ node_modules/
 backend/backend/
 
 frontend/package-lock.json
+package-lock.json
