@@ -47,32 +47,39 @@ export function ActivityList() {
               />
             </div>
           </Card>
-            
-            <Card
+
+
+            <div
               key={activity.id}
               style={{ marginBottom: '24px' }}
             >
 
-              <div className="candidates-container">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 gap-y-4">
                 {candidates
                   .filter(c => activity.candidate_ids.includes(c.id))
                   .map(candidate => (
-                    <Card.Grid key={candidate.id} style={{ width: '100%' }}>
+                    <Card key={candidate.id} className="relative">
+                      <div className="max-md:flex max-md:flex-col max-md:items-center md:grid md:grid-cols-[120px_1fr] md:gap-6">
                         <img 
                           src={candidate.photo} 
                           alt={candidate.name}
-                        style={{ width: 100, height: 100, objectFit: 'cover' }}
+                          className="w-32 h-32 object-cover rounded-lg md:w-36 md:h-36"
                         />
-                      <h4 className="md:text-lg">{candidate.name}</h4>
-                      <p className="text-sm md:text-base">学院：{candidate.college_name}</p>
-                      <p className="text-sm md:text-base">简介：{candidate.bio}</p>
-                      <Button type="primary" style={{ marginTop: '12px' }}>
-                            投票（当前票数：{candidate.vote_count}）
-                          </Button>
-                      </Card.Grid>
+                        <div className="md:flex md:flex-col md:justify-between">
+                          <div className="text-center md:text-left">
+                            <h4 className="text-xl font-semibold mt-4 md:mt-0 md:text-2xl">{candidate.name}</h4>
+                            <p className="text-gray-600 mt-2 md:mt-1 md:text-lg">学院：{candidate.college_name}</p>
+                            <p className="text-gray-600 mt-2 line-clamp-3 md:line-clamp-4 md:text-base">{candidate.bio}</p>
+                          </div>
+                        </div>
+                        <div className="absolute top-2 right-2 bg-white bg-opacity-80 px-3 py-1 rounded-full text-sm font-medium shadow-sm">
+                          票数：{candidate.vote_count}
+                        </div>
+                      </div>
+                    </Card>
                   ))}
               </div>
-            </Card>
+            </div>
           </div>
         ))}
     </div>
