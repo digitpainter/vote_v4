@@ -7,3 +7,11 @@
   font-style: normal;
   font-display: swap;
 }
+
+.custom-checkbox .ant-checkbox-inner {
+  @apply w-6 h-6; /* 调整复选框大小为 24px x 24px */
+}
+
+.custom-checkbox .ant-checkbox-inner::after {
+  @apply scale-150; /* 放大勾号 */
+}

@@ -1,5 +1,5 @@
 import { useActivity } from '../contexts/ActivityContext';
-import { Spin, Alert, Card, Button ,Grid, Row, Col, Flex,Avatar,Typography} from 'antd';
+import { Spin, Alert, Card, Button ,Grid, Row, Col, Flex,Avatar,Typography,Table,Checkbox} from 'antd';
 import { formatDateTime } from '../utils/date';
 
 export function IconRow({ icon, label, value }: { icon: string; label: string; value: string }) {
@@ -46,7 +46,7 @@ export function ActivityList() {
                 value={activity.description}
               />
             </div>
-          </Card>
+            </Card>
 
 
             <div
@@ -94,9 +94,33 @@ export function ActivityList() {
                   ))}
               </div>
             </div>
+            <div className="mt-8">
+
+              
+        <Table
+          dataSource={candidates.filter(c => activity.candidate_ids.includes(c.id))}
+          columns={[
+            {
+              title: '学院',
+              dataIndex: 'college_name',
+              key: 'college',
+              className: 'px-2 md:px-4'
+            },
+            {
+              title: '姓名',
+              dataIndex: 'name',
+              key: 'name',
+              className: 'px-2 md:px-4 whitespace-nowrap'
+            },
+          ]}
+          rowKey="id"
+          className="dir-rtl shadow-md rounded-lg overflow-hidden [&_.ant-table-cell]:py-3 [&_.ant-checkbox-inner]:w-6 [&_.ant-checkbox-inner]:h-6"
+          pagination={false}
+          scroll={{ x: true }}
+        />
+          </div>
           </div>
         ))}
-      <div></div>
     </div>
   );
 }
