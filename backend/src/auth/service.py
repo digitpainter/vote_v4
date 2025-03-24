@@ -8,6 +8,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from ..database import SessionLocal
 from ..models import Administrator
+import os
 
 class AuthService:
     redis_client = redis.Redis(host='localhost', port=6379, db=0)
@@ -15,6 +16,7 @@ class AuthService:
     # Configure logging
     logger = logging.getLogger('auth_service')
     logger.setLevel(logging.INFO)
+    os.makedirs('logs', exist_ok=True)
     handler = RotatingFileHandler('logs/auth.log', maxBytes=10485760, backupCount=5)
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
