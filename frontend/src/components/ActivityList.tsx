@@ -4,18 +4,16 @@ import { formatDateTime } from '../utils/date';
 
 export function IconRow({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
-    
-      <Flex className="w-full h-[66px] items-center md:w-[30vw] md:justify-around">
-            <div 
-              className="w-[30px] h-[36px] md:w-[50px] md:h-[56px] bg-contain bg-no-repeat bg-center"
-              style={{ backgroundImage: `url(${icon})` }}
-              aria-label={label}
-            />
-            <Flex className="md:flex-col text-center items-center w-full">
-              <h4 className="text-base md:text-lg w-full">{label}</h4>
-              <div className="text-base md:text-lg text-gray-600 max-w-[30vw]">{value}</div>
-            </Flex>
-      </Flex>
+    <div className="flex items-center gap-4 md:gap-6 p-2 md:p-4 flex-1">
+      <div 
+        className="w-12 h-12 bg-contain bg-no-repeat bg-center"
+        style={{ backgroundImage: `url(${icon})` }}
+      />
+      <div className="flex md:flex-col md-max:flex-row items-start md:items-center gap-2 flex-1">
+        <span className="w-24 text-sm font-medium text-gray-600 shrink-0">{label}</span>
+        <span className="text-base text-gray-800 text-center md:text-left break-all">{value}</span>
+      </div>
+    </div>
   );
 }
 
@@ -29,33 +27,27 @@ export function ActivityList() {
   return (
     <div className="px-4 md:px-24">
         {activeActivities.map((activity) => (
-            <div key={activity.id}>
-            <Card className="mt-[-40px] mb-[50px] w-[86vw] h-[25vh] relative z-[1001]">
-                <div className='flex-auto flex max-md:flex-col md:flex-row'>
-                  <Col>
-                    <IconRow
-                      icon="/image/start_icon.svg"
-                      label="开始时间"
-                      value={formatDateTime(activity.start_time)}
-                    />
-                  </Col>
-                  <Col>
-                    <IconRow
-                      icon="/image/end_icon.svg"
-                      label="结束时间"
-                      value={formatDateTime(activity.end_time)}
-                    />
-                  </Col>
-                  <Col>
-                    <IconRow
-                      icon="/image/rule_icon.svg"
-                      label="投票规则"
-                      value={activity.description}
-                    />
-                  </Col>
-                </div >
-              </Card>
-
+          <div key={activity.id}>
+            <Card className='mt-[-40px] z-[1001]'>
+              <div className="flex max-md:flex-col md:flex-row gap-4 mb-6">
+              <IconRow 
+                icon="/image/start_icon.svg"
+                label="活动时间"
+                value={formatDateTime(activity.start_time)}
+              />
+              <IconRow 
+                icon="/image/end_icon.svg"
+                label="活动时间"
+                value={formatDateTime(activity.end_time)}
+              />
+              <IconRow 
+                icon="/image/rule_icon.svg"
+                label="活动描述"
+                value={activity.description}
+              />
+            </div>
+          </Card>
+            
             <Card
               key={activity.id}
               style={{ marginBottom: '24px' }}

@@ -1,7 +1,6 @@
 import './App.css'
 import { ActivityProvider } from './contexts/ActivityContext'
 import { ConfigProvider, Layout } from 'antd';
-import { Spin, Alert, Card, Row, Col, Button } from 'antd';
 import { HeaderComponent } from './components/HeaderComponent';
 import { FooterComponent } from './components/FooterComponent';
 import { ContentArea } from './components/ContentArea';
