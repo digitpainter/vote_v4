@@ -1,12 +1,5 @@
 @layer theme, base, antd, components, utilities;
 @import "tailwindcss";
-@font-face {
-  font-family: 'AlibabaPuHui';
-  src: url('/fonts/AlibabaPuHui-3-55-Regular.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
 
 .custom-checkbox .ant-checkbox-inner {
   @apply w-6 h-6; /* 调整复选框大小为 24px x 24px */
