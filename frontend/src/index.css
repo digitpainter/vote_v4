@@ -1,5 +1,6 @@
-@layer theme, base, antd, components, utilities;
 @import "tailwindcss";
+
+@layer theme, base, antd, components, utilities;
 
 .custom-checkbox .ant-checkbox-inner {
   @apply w-6 h-6; /* 调整复选框大小为 24px x 24px */
