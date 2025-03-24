@@ -44,7 +44,7 @@ class Candidate(Base):
     __tablename__ = "candidates"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    name: Mapped[str] = mapped_column(String(50), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(50))
     college_id: Mapped[int] = mapped_column(Integer)
     photo: Mapped[str] = mapped_column(String(200), server_default='https://via.placeholder.com/150')
     bio: Mapped[str] = mapped_column(String(500))
