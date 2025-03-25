@@ -39,34 +39,10 @@ export function AuthProvider({children}: { children: ReactNode }) {
 
   const login = async () => {
     try {
-      console.debug(`[API Request][${new Date().toISOString()}] CAS登录请求，staffId`);
-      const response = await fetch(`http://localhost:8000/auth/cas-login`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        redirect: 'follow'
-      });
-
-      console.debug(`[API Response][${new Date().toISOString()}] 登录响应状态: ${response.status}`);
-
-      if (!response.ok) {
-        throw new Error('Login failed');
-      }
-
-      const data = await response.json();
-      console.debug(`[API Data][${new Date().toISOString()}] 登录成功，角色: ${data.role}, 访问令牌长度: ${data.access_token?.length}`);
-      setIsAuthenticated(true);
-      setStaffId(data.staff_id);
-      setName(data.name);
-      setRole(data.role);
-      setToken(data.access_token);
-      setAdminType(data.admin_type)
-      localStorage.setItem('token', data.access_token);
+      const url = `http://localhost:8001/login?service=http://localhost:5173/cas-callback`;
+      window.location.href = url;
     } catch (error) {
-      console.error('Login error:', error);
-      throw error;
+      console.error('登录失败:', error);
     }
   };
 

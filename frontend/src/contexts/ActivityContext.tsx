@@ -28,6 +28,8 @@ export function ActivityProvider({children}: { children: ReactNode }) {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
+        mode: 'cors'
       });
 
       console.debug(`[API Response][${new Date().toLocaleString()}] Candidates fetch status: ${response.status}, content length: ${response.headers.get('Content-Length')}`);
@@ -54,6 +56,8 @@ export function ActivityProvider({children}: { children: ReactNode }) {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
+        mode: 'cors'
       });
 
       console.debug(`[API Response][${new Date().toLocaleString()}] Activities fetch status: ${response.status}`);

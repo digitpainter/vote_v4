@@ -32,6 +32,7 @@ async def cas_login():
         "service": SERVICE_URL
     }
     login_url = f"{CAS_SERVER_URL}/login?{urlencode(params)}"
+    print(f"Redirecting to CAS login URL: {login_url}")
     return RedirectResponse(url=login_url)
 
 @router.get("/cas-callback")
@@ -74,6 +75,7 @@ async def cas_callback(ticket: str, request: Request, response: Response):
             if 'id' not in user_info or 'uid' not in user_info:
                 raise HTTPException(status_code=500, detail="Missing required user information from CAS server")
             session = AuthService.create_user_session(user_info)
+            return session
             # response.set_cookie(
             #     key="access_token",
             #     value=session.access_token,

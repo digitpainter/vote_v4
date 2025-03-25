@@ -7,7 +7,8 @@ import { ContentArea } from './components/ContentArea';
 import { AuthProvider } from './contexts/AuthContext';
 import { Routes, Route } from 'react-router';
 import ProtectedRoute from './components/ProtectedRoute';
-import CASLoginPage from './pages/CASLoginPage';
+import CASLoginPage from './pages/CASLoginPage'
+import CasCallbackPage from './pages/CasCallbackPage';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
           <ActivityProvider>
             <Routes>
               <Route path="/login" element={<CASLoginPage />} />
+              <Route path="/cas-callback" element={<CasCallbackPage />} />
               <Route path="/" element={
                 <ProtectedRoute>
                   <HeaderComponent />
