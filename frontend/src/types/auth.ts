@@ -5,6 +5,11 @@ export enum UserRole {
   TEACHER = "teacher"
 }
 
+export enum AdminType {
+    SCHOOL = "school",
+    COLLEGE = "college"
+}
+
 export interface User {
   staff_id: string;
   name: string;

@@ -71,7 +71,7 @@ async def cas_callback(ticket: str, request: Request, response: Response):
             if not isinstance(user_info, dict):
                 raise HTTPException(status_code=500, detail="Invalid user info format from CAS server")
                 
-            if 'id' not in user_info or 'username' not in user_info:
+            if 'id' not in user_info or 'uid' not in user_info:
                 raise HTTPException(status_code=500, detail="Missing required user information from CAS server")
             session = AuthService.create_user_session(user_info)
             return session

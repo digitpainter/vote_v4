@@ -1,7 +1,8 @@
 import { Key, useState } from 'react';
-import { Table, Avatar, Typography } from 'antd';
+import { Table, Image, Typography } from 'antd';
 import { Candidate } from '../types/candidate';
 import { Activity } from '../types/activity';
+import { BASE64_PLACEHOLDER } from '../constants/images'
 
 type CandidateTableProps = {
   candidates: Candidate[];
@@ -34,6 +35,7 @@ export function CandidateTable({
       ]}
       rowKey="id"
       className="dir-rtl shadow-md rounded-lg overflow-hidden"
+      rowClassName={(_, index) => index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}
       rowSelection={{
         type: 'checkbox',
         selectedRowKeys,
@@ -48,27 +50,31 @@ export function CandidateTable({
               : [...prev, key]
           );
         },
-        onTouchStart: () => {
-          const key = record.id;
-          const timer = setTimeout(() => {
-            setExpandedRowKey(prev => prev === key ? null : key);
-          }, 500);
-          // @ts-ignore
-          event.currentTarget.timer = timer;
-        },
-        onTouchEnd: () => {
-          // @ts-ignore
-          clearTimeout(event.currentTarget?.timer);
-        },
+        // onTouchStart: () => {
+        //   const key = record.id;
+        //   const timer = setTimeout(() => {
+        //     setExpandedRowKey(prev => prev === key ? null : key);
+        //   }, 500);
+        //   // @ts-ignore
+        //   event.currentTarget.timer = timer;
+        // },
+        // onTouchEnd: () => {
+        //   // @ts-ignore
+        //   clearTimeout(event.currentTarget?.timer);
+        // },
       })}
       expandable={{
         expandedRowRender: (record) => (
           <div className="flex gap-4 p-4">
-            <img 
+            <Image
               src={record.photo}
               alt={record.name}
-              className="w-26 h-26 object-cover rounded-lg"
-            />
+              className="object-cover rounded-lg flex items-center justify-center"
+              preview={true} 
+              width={110}
+              height={110}
+              fallback={BASE64_PLACEHOLDER}
+              />
             <div className="flex-1">
               <Typography.Paragraph 
                 className="text-sm whitespace-pre-wrap"

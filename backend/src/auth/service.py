@@ -24,8 +24,8 @@ class AuthService:
 
     @classmethod
     def create_user_session(cls, user_info: dict) -> UserSession:
-        role = cls.determine_user_role(user_info['username'])
-        access_token = f"session_{user_info['id']}"
+        role = cls.determine_user_role(user_info['uid'])
+        access_token = f"session_{user_info['uid']}"
         
         # Check administrator status
         admin_type = None
@@ -38,8 +38,8 @@ class AuthService:
                 admin_college_id = admin.admin_college_id
         
         session = UserSession(
-            staff_id=str(user_info['id']),
-            username=user_info['username'],
+            staff_id=str(user_info['uid']),
+            username=user_info['userName'],
             access_token=access_token,
             role=role,
             admin_type=admin_type,
@@ -49,7 +49,7 @@ class AuthService:
         
         # Log successful login
         cls.logger.info(
-            f"User logged in - ID: {user_info['id']}, Username: {user_info['username']}, "
+            f"User logged in - ID: {user_info['uid']}, Username: {user_info['userName']}, "
             f"Role: {role}, Admin Type: {admin_type}, College ID: {admin_college_id}, "
             f"Time: {datetime.now()}"
         )

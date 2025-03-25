@@ -1,7 +1,7 @@
 import { Activity } from '../types/activity';
 import { Candidate } from '../types/candidate';
-import { Card, Row, Col, Avatar, Typography } from 'antd';
-
+import { Card, Row, Col, Image, Typography } from 'antd';
+import { BASE64_PLACEHOLDER } from '../constants/images'
 type CandidateGridProps = {
   activity: Activity;
   candidates: Candidate[];
@@ -17,12 +17,14 @@ export function CandidateGrid({ activity, candidates }: CandidateGridProps) {
                 className="relative hover:shadow-lg transition-shadow duration-300 shadow-md">
             <Row gutter={[16, 16]} className="w-full">
               <Col xs={24} md={6} className="flex justify-center">
-                <Avatar
+                <Image
                   src={candidate.photo}
                   alt={candidate.name}
-                  shape="square"
-                  size={128}
-                  className="rounded-lg object-cover w-32 h-32 md:w-36 md:h-36"
+                  className="rounded-lg object-cover flex items-center object-center"
+                  preview={true}
+                  fallback={BASE64_PLACEHOLDER}
+                  width={130}
+                  height={130}
                 />
               </Col>
               <Col xs={24} md={18}>

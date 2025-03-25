@@ -1,6 +1,6 @@
 import { Key, useState } from 'react';
 import {useActivity} from '../contexts/ActivityContext';
-import {Spin, Alert, Card, Row, Col, Avatar, Typography, Table} from 'antd';
+import {Spin, Alert, Card, Row, Col, Image, Typography, Table} from 'antd';
 import {formatDateTime} from '../utils/date';
 import { CandidateTable } from './CandidateTable';
 import { CandidateGrid } from './CandidateGrid';
@@ -31,7 +31,7 @@ export function ActivityList() {
     <div className="px-4 md:px-24">
       {activeActivities.map((activity) => (
         <div key={activity.id}>
-          <Card className='mt-[-40px] z-[1001]'>
+          <Card className='mt-[-40px] z-[10]'>
             <div className="flex max-md:flex-col md:flex-row gap-4 mb-6">
               <IconRow
                 icon="/image/start_icon.svg"
