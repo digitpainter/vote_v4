@@ -1,12 +1,14 @@
 import {createContext, useContext, useState, useEffect, ReactNode} from 'react';
-import {UserRole} from '../types/auth';
+import {AdminType, UserRole} from '../types/auth';
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  checkAuthStatus: () => boolean;
   staffId: string | null;
   name: string | null;
   role: UserRole | null;
   token: string | null;
+  adminType : AdminType | null;
   login: (staffId: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -14,13 +16,18 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const checkAuthStatus = () => {
+  const storedToken = localStorage.getItem('token');
+  return !!storedToken;
+};
+
 export function AuthProvider({children}: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [staffId, setStaffId] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
   const [role, setRole] = useState<UserRole | null>(null);
   const [token, setToken] = useState<string | null>(null);
-
+  const [adminType, setAdminType] = useState<AdminType | null>(null);
   useEffect(() => {
     // Check for existing token on mount
     const storedToken = localStorage.getItem('token');
@@ -30,15 +37,16 @@ export function AuthProvider({children}: { children: ReactNode }) {
     }
   }, []);
 
-  const login = async (staffId: string) => {
+  const login = async () => {
     try {
-      console.debug(`[API Request][${new Date().toISOString()}] CAS登录请求，staffId: ${staffId}`);
-      const response = await fetch('http://localhost:8000/cas-login', {
-        method: 'POST',
+      console.debug(`[API Request][${new Date().toISOString()}] CAS登录请求，staffId`);
+      const response = await fetch(`http://localhost:8000/auth/cas-login`, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({staff_id: staffId}),
+        credentials: 'include',
+        redirect: 'follow'
       });
 
       console.debug(`[API Response][${new Date().toISOString()}] 登录响应状态: ${response.status}`);
@@ -54,6 +62,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
       setName(data.name);
       setRole(data.role);
       setToken(data.access_token);
+      setAdminType(data.admin_type)
       localStorage.setItem('token', data.access_token);
     } catch (error) {
       console.error('Login error:', error);
@@ -67,16 +76,17 @@ export function AuthProvider({children}: { children: ReactNode }) {
     setName(null);
     setRole(null);
     setToken(null);
-    localStorage.removeItem('token');
+    localStorage.removeItem('token');  // 移除手动token存储
   };
 
   const refreshUser = async () => {
     try {
       console.debug(`[API Request][${new Date().toISOString()}] 刷新用户信息请求`);
-      const response = await fetch('http://localhost:8000/users/me', {
+      const response = await fetch('http://localhost:8000/auth/users/me', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
+        credentials: 'include',
       });
 
       console.debug(`[API Response][${new Date().toISOString()}] 用户信息刷新响应状态: ${response.status}`);
@@ -99,14 +109,18 @@ export function AuthProvider({children}: { children: ReactNode }) {
     }
   };
 
+  
+
   return (
     <AuthContext.Provider
       value={{
         isAuthenticated,
+        checkAuthStatus,
         staffId,
         name,
         role,
         token,
+        adminType,
         login,
         logout,
         refreshUser,

@@ -25,7 +25,7 @@ class AuthService:
     @classmethod
     def create_user_session(cls, user_info: dict) -> UserSession:
         role = cls.determine_user_role(user_info['uid'])
-        access_token = f"session_{user_info['uid']}"
+        access_token = f"session_{user_info['id']}"
         
         # Check administrator status
         admin_type = None
