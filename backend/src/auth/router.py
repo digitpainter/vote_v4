@@ -37,60 +37,37 @@ async def cas_login():
 
 @router.get("/cas-callback")
 async def cas_callback(ticket: str, request: Request, response: Response):
-    """Handle CAS server callback with ticket validation"""
     try:
-        # Validate ticket with CAS server
         async with httpx.AsyncClient() as client:
             validate_url = f"{CAS_SERVER_URL}/serviceValidate?ticket={ticket}&service={SERVICE_URL}"
-            print(f"Validating ticket with URL: {validate_url}")
             
-            try:
-                cas_response = await client.get(validate_url)
-                print(f"CAS Response Status: {cas_response.status_code}")
-                print(f"CAS Response Content: {cas_response.text}")
-            except Exception as e:
-                print(f"Error making request to CAS server: {str(e)}")
-                raise HTTPException(status_code=500, detail=f"Failed to connect to CAS server: {str(e)}")
+            cas_response = await client.get(validate_url)
             
             if cas_response.status_code != 200:
-                raise HTTPException(status_code=401, detail=f"Invalid CAS ticket: Server returned {cas_response.status_code}")
+                raise HTTPException(status_code=401, detail=f"无效的CAS票据，服务器返回{cas_response.status_code}")
+
+            data = cas_response.json()
             
-            # Parse CAS response
-            try:
-                data = cas_response.json()
-            except Exception as e:
-                print(f"Error parsing CAS response as JSON: {str(e)}\nResponse content: {cas_response.text}")
-                raise HTTPException(status_code=500, detail="Failed to parse CAS server response")
-            
-            if not isinstance(data, dict):
-                raise HTTPException(status_code=500, detail="Invalid response format from CAS server")
-                
             if not data.get('authenticated'):
-                raise HTTPException(status_code=401, detail="Authentication failed")
+                raise HTTPException(status_code=401, detail="CAS认证失败")
                 
             user_info = data.get('user')
-            if not isinstance(user_info, dict):
-                raise HTTPException(status_code=500, detail="Invalid user info format from CAS server")
-                
-            if 'id' not in user_info or 'uid' not in user_info:
-                raise HTTPException(status_code=500, detail="Missing required user information from CAS server")
             session = AuthService.create_user_session(user_info)
-            return session
-            # response.set_cookie(
-            #     key="access_token",
-            #     value=session.access_token,
-            #     httponly=True,
-            #     max_age=86400,
-            #     secure=False,
-            #     samesite="lax"
-            # )
-            # main_url = f"{VOTE_MAIN_URL}"
-
-            # return RedirectResponse(url=main_url)
-            pass
+            
+            return {
+                "authenticated": True,
+                "access_token": session.access_token,
+                "user_info": {
+                    "staff_id": session.staff_id,
+                    "role": session.role
+                }
+            }
             
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return {
+            "authenticated": False,
+            "error": str(e)
+        }
 
 @router.get("/users/me")
 async def get_current_user(request: Request):

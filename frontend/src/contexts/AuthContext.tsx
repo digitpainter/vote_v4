@@ -3,6 +3,7 @@ import {AdminType, UserRole} from '../types/auth';
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  loading: boolean;
   checkAuthStatus: () => boolean;
   staffId: string | null;
   name: string | null;
@@ -22,6 +23,7 @@ const checkAuthStatus = () => {
 };
 
 export function AuthProvider({children}: { children: ReactNode }) {
+  const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [staffId, setStaffId] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
@@ -30,14 +32,20 @@ export function AuthProvider({children}: { children: ReactNode }) {
   const [adminType, setAdminType] = useState<AdminType | null>(null);
   useEffect(() => {
     // Check for existing token on mount
+    console.debug(`AuthProvider 检查token`)
+    console.debug(`AuthProvider 检查token ${localStorage.getItem('token')}`)
+    setLoading(true);
     const storedToken = localStorage.getItem('token');
     if (storedToken) {
       setToken(storedToken);
-      refreshUser();
+      refreshUser().finally(() => setLoading(false));
+    } else {
+      setLoading(false);
     }
   }, []);
 
   const login = async () => {
+    console.debug(`[API Request][${new Date().toISOString()}] 登录请求`);
     try {
       const url = `http://localhost:8001/login?service=http://localhost:5173/cas-callback`;
       window.location.href = url;
@@ -57,10 +65,10 @@ export function AuthProvider({children}: { children: ReactNode }) {
 
   const refreshUser = async () => {
     try {
-      console.debug(`[API Request][${new Date().toISOString()}] 刷新用户信息请求`);
+      console.debug(`[API Request][${new Date().toISOString()}] 刷新用户信息请求，token: ${localStorage.getItem('token')}`);
       const response = await fetch('http://localhost:8000/auth/users/me', {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
         credentials: 'include',
       });
@@ -78,7 +86,6 @@ export function AuthProvider({children}: { children: ReactNode }) {
       setName(data.name);
       setRole(data.role);
       setToken(data.access_token);
-      localStorage.setItem('token', data.access_token);
     } catch (error) {
       console.error('[API Error] 用户信息刷新错误:', error);
       logout();
@@ -91,6 +98,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         isAuthenticated,
+        loading,
         checkAuthStatus,
         staffId,
         name,
