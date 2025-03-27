@@ -65,7 +65,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
     setToken(null);
     SetAdminCollegeId(null);
     localStorage.removeItem('token');  // 移除手动token存储
-    const url = `http://localhost:8001/logout?service=http://localhost:5173/cas-callback`;
+    const url = `http://localhost:8001/logout`;
     window.location.href = url;
   };
 
