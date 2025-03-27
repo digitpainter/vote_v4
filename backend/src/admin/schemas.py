@@ -10,7 +10,7 @@ class AdminType(str, Enum):
 class AdminBase(BaseModel):
     stuff_id: str
     admin_type: AdminType
-    college_id: Optional[int] = None
+    college_id: Optional[str] = None
     college_name: Optional[str] = None
 
 class AdminCreate(AdminBase):

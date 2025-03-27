@@ -1,7 +1,8 @@
+from logging import info
 from fastapi import APIRouter, HTTPException, Request, Response, Depends
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.responses import RedirectResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, session
 from typing import Optional
 import httpx
 from urllib.parse import urlencode
@@ -75,14 +76,25 @@ async def get_current_user(request: Request):
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Not authenticated")
+    print("get_current_user token")
     
     token = auth_header.split(" ")[1]
+    if not AuthService.is_valid_token(token):
+        raise HTTPException(status_code=401, detail="Invalid or expired session")
+        
     user_session = AuthService.get_user_session(token)
     
     if not user_session:
         raise HTTPException(status_code=401, detail="Invalid or expired session")
     
-    return user_session
+    return {
+        "staff_id": user_session.staff_id,
+        "role": user_session.role,
+        "username": user_session.username,
+        "admin_type": user_session.admin_type,
+        "admin_college_id": user_session.admin_college_id,
+        "admin_college_name": user_session.admin_college_name
+    }
 
 @router.post("/logout")
 async def logout(request: Request):

@@ -6,7 +6,8 @@ class UserSession(BaseModel):
     access_token: str
     role: str
     admin_type: str | None = None
-    admin_college_id: int | None = None
+    admin_college_id: str | None = None
+    admin_college_name: str | None = None
 
 class CASResponse(BaseModel):
     staff_id: str

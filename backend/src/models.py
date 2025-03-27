@@ -45,7 +45,7 @@ class Candidate(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(50))
-    college_id: Mapped[int] = mapped_column(Integer)
+    college_id: Mapped[str] = mapped_column(String(50))
     photo: Mapped[str] = mapped_column(String(200), server_default='https://via.placeholder.com/150')
     bio: Mapped[str] = mapped_column(String(500))
     college_name: Mapped[str] = mapped_column(String(100))
@@ -83,7 +83,7 @@ class Administrator(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     stuff_id: Mapped[str] = mapped_column(String(50))
     admin_type: Mapped[AdminType] = mapped_column(String(10))
-    college_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    college_id: Mapped[str] = mapped_column(String(50), nullable=True)
     college_name: Mapped[str] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

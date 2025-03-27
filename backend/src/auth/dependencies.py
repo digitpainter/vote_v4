@@ -1,3 +1,4 @@
+from operator import is_
 from fastapi import HTTPException, Request
 from typing import Optional, List
 from .service import AuthService
@@ -10,6 +11,8 @@ def check_roles(allowed_roles: List[str] = [], allowed_admin_types: List[str] = 
         
         token = auth_header.split(" ")[1]
         try:
+            if not AuthService.is_valid_token(token):
+                raise HTTPException(status_code=401, detail="Invalid or expired session")
             user_session = AuthService.get_user_session(token)
             if user_session.role not in allowed_roles:
                 raise HTTPException(

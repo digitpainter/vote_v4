@@ -12,7 +12,9 @@ export enum AdminType {
 
 export interface User {
   staff_id: string;
-  name: string;
+  username: string;
   role: UserRole;
   token: string;
+  admin_type?: AdminType;
+  admin_college_id?: string;
 }

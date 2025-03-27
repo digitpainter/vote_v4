@@ -5,8 +5,8 @@ import faker  # 新增faker库
 fake = faker.Faker(locale='zh_CN')  # 创建faker实例
 
 class CandidateCreate(BaseModel):
-    name: str= "王伟"
-    college_id: int = 3
+    name: str= fake.name()
+    college_id: str = "0503000"
     photo: str = fake.image_url()
     bio: str = fake.text(500)
     college_name: str = fake.company()
@@ -17,7 +17,7 @@ class CandidateCreate(BaseModel):
 class CandidateResponse(BaseModel):
     id: int
     name: str
-    college_id: int
+    college_id: str
     photo: str
     bio: str
     college_name: str

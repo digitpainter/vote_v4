@@ -2,7 +2,7 @@ export interface Candidate {
   id: string;
   name: string;
   bio: string;
-  college_id: number;
+  college_id: string;
   college_name: string;
   photo: string;
   vote_count: number;

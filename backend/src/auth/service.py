@@ -30,22 +30,23 @@ class AuthService:
         # Check administrator status
         admin_type = None
         admin_college_id = None
-        
+        admin_college_name = None
         with SessionLocal() as db:
             admin = db.query(Administrator).filter(Administrator.stuff_id == user_info['username']).first()
             if admin:
                 admin_type = admin.admin_type
-                admin_college_id = admin.admin_college_id
-        
+                admin_college_id = admin.college_id
+                admin_college_name = admin.college_name
         session = UserSession(
             staff_id=str(user_info['uid']),
             username=user_info['userName'],
             access_token=access_token,
             role=role,
             admin_type=admin_type,
-            admin_college_id=admin_college_id
+            admin_college_id=admin_college_id,
+            admin_college_name=admin_college_name,
         )
-        cls.redis_client.set(f'session:{access_token}', json.dumps(session.dict()), ex=3600)
+        cls.redis_client.set(f'session:{access_token}', json.dumps(session.dict()), ex=60)
         
         # Log successful login
         cls.logger.info(
@@ -64,6 +65,11 @@ class AuthService:
         session = UserSession(**json.loads(session_data))
         cls.logger.info(f"Session retrieved - User: {session.username}, Time: {datetime.now()}")
         return session
+
+    @classmethod
+    def is_valid_token(cls, token: str) -> bool:
+        # 将Redis exists命令的返回值显式转换为布尔值
+        return bool(cls.redis_client.exists(f'session:{token}'))
 
     @classmethod
     def delete_user_session(cls, token: str):

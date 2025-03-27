@@ -10,6 +10,7 @@ interface AuthContextType {
   role: UserRole | null;
   token: string | null;
   adminType : AdminType | null;
+  adminCollegeId: string | null;
   login: (staffId: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -30,6 +31,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
   const [role, setRole] = useState<UserRole | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [adminType, setAdminType] = useState<AdminType | null>(null);
+  const [adminCollegeId, SetAdminCollegeId] = useState<string | null>(null);
   useEffect(() => {
     // Check for existing token on mount
     console.debug(`AuthProvider 检查token`)
@@ -58,9 +60,13 @@ export function AuthProvider({children}: { children: ReactNode }) {
     setIsAuthenticated(false);
     setStaffId(null);
     setName(null);
+    setAdminType(null);
     setRole(null);
     setToken(null);
+    SetAdminCollegeId(null);
     localStorage.removeItem('token');  // 移除手动token存储
+    const url = `http://localhost:8001/logout?service=http://localhost:5173/cas-callback`;
+    window.location.href = url;
   };
 
   const refreshUser = async () => {
@@ -81,11 +87,15 @@ export function AuthProvider({children}: { children: ReactNode }) {
 
       const data = await response.json();
       console.debug(`[API Data][${new Date().toISOString()}] 用户信息刷新成功，staff_id: ${data.staff_id}`);
+      console.debug(`[API Data][${new Date().toISOString()}] 用户信息刷新成功，data: ${data}`);
+      console.debug(`[API Data][${new Date().toISOString()}] 用户信息刷新成功，data: ${data.username}`);
+
       setIsAuthenticated(true);
       setStaffId(data.staff_id);
-      setName(data.name);
+      setName(data.username);
+      setAdminType(data.admin_type);
       setRole(data.role);
-      setToken(data.access_token);
+      SetAdminCollegeId(data.college_id);
     } catch (error) {
       console.error('[API Error] 用户信息刷新错误:', error);
       logout();
@@ -105,6 +115,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
         role,
         token,
         adminType,
+        adminCollegeId,
         login,
         logout,
         refreshUser,
