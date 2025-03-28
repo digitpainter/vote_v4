@@ -28,11 +28,11 @@ function App() {
                   <HeaderComponent />
                   <ContentArea />
                   <FooterComponent />
-                  <SidebarController />
                 </ProtectedRoute>
               } />
             </Routes>
           </ActivityProvider>
+          <SidebarController />
         </AuthProvider>
       </Layout>
     </ConfigProvider>

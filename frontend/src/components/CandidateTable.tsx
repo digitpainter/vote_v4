@@ -1,8 +1,9 @@
 import { Key, useState } from 'react';
-import { Table, Image, Typography } from 'antd';
+import { Table, Image, Typography ,Button} from 'antd';
 import { Candidate } from '../types/candidate';
 import { Activity } from '../types/activity';
 import { BASE64_PLACEHOLDER } from '../constants/images'
+import { useActivity } from '../contexts/ActivityContext';
 
 type CandidateTableProps = {
   candidates: Candidate[];
@@ -13,6 +14,7 @@ export function CandidateTable({
   candidates,
   activity,
 }: CandidateTableProps) {
+  const { maxVotes, minVotes } = useActivity();
   const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([]);
   const [expandedRowKey, setExpandedRowKey] = useState<Key | null>(null);
   return (
@@ -92,6 +94,19 @@ export function CandidateTable({
       }}
       pagination={false}
       scroll={{ x: true }}
+      footer={() => (
+        <div className="sticky bottom-0 bg-white p-4 border-t border-gray-200">
+          <Button
+            type="primary"
+            size="large"
+            disabled={selectedRowKeys.length < minVotes || selectedRowKeys.length > maxVotes}
+            className="w-full"
+            onClick={() => console.log('提交投票:', selectedRowKeys)}
+          >
+            投票（{selectedRowKeys.length}{minVotes !== maxVotes ? `（需投满${minVotes}-${maxVotes}票）` : `/${maxVotes}`}）
+          </Button>
+        </div>
+      )}
     />
   );
 }

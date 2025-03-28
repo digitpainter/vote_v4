@@ -48,14 +48,29 @@ class VoteService:
         return query.all()
 
     @staticmethod
-    def create_vote(db: Session, candidate_id: int, voter_id: int, activity_id: int):
+    def create_vote(db: Session, candidate_id: int, voter_id: str, activity_id: int):
+        # 获取活动配置
+        activity = db.query(VoteActivity).filter(VoteActivity.id == activity_id).first()
+        if not activity:
+            raise ValueError("投票活动不存在")
+        
+        # 检查总票数
+        existing_votes_count = db.query(Vote).filter(
+            Vote.voter_id == voter_id,
+            Vote.activity_id == activity_id
+        ).count()
+        
+        if existing_votes_count >= activity.max_votes:
+            raise ValueError(f"每人最多投{activity.max_votes}票")
+        if existing_votes_count < activity.min_votes - 1:
+            raise ValueError(f"至少需要投{activity.min_votes}票")
+        
         candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
         if not candidate:
-            raise ValueError("Candidate not found")
+            raise ValueError("候选人不存在")
 
         vote_count = db.query(Vote).filter(Vote.candidate_id == candidate_id).count()
-        if vote_count >= 5:
-            raise ValueError("Maximum votes (5) reached")
+
 
         existing_vote = db.query(Vote).filter(
             Vote.candidate_id == candidate_id,
@@ -70,7 +85,7 @@ class VoteService:
             db.add(vote)
             db.commit()
             return vote
-        except Exception as e:
+        except ValueError as e:
             db.rollback()
             raise ValueError(str(e))
 
@@ -81,13 +96,14 @@ class VoteService:
     @staticmethod
     def create_activity(db: Session, activity: ActivityCreate):
         try:
-            print(activity.start_time)
             db_activity = VoteActivity(
                 title=activity.title,
                 description=activity.description,
                 start_time=activity.start_time,
                 end_time=activity.end_time,
-                is_active=activity.is_active
+                is_active=activity.is_active,
+                max_votes=activity.max_votes,
+                min_votes=activity.min_votes
             )
             db.add(db_activity)
             db.flush()
@@ -108,6 +124,8 @@ class VoteService:
                 "start_time": db_activity.start_time,
                 "end_time": db_activity.end_time,
                 "is_active": db_activity.is_active,
+                "max_votes": db_activity.max_votes,
+                "min_votes": db_activity.min_votes,
                 "candidate_ids": activity.candidate_ids
             }
         except Exception as e:
@@ -124,6 +142,8 @@ class VoteService:
                 "start_time": activity.start_time,
                 "end_time": activity.end_time,
                 "is_active": activity.is_active,
+                "max_votes": activity.max_votes,
+                "min_votes": activity.min_votes,
                 "candidate_ids": [assoc.candidate_id for assoc in activity.associations]
             }
             for activity in db.query(VoteActivity).all()
@@ -139,6 +159,8 @@ class VoteService:
                 "start_time": activity.start_time,
                 "end_time": activity.end_time,
                 "is_active": activity.is_active,
+                "max_votes": activity.max_votes,
+                "min_votes": activity.min_votes,
                 "candidate_ids": [assoc.candidate_id for assoc in activity.associations]
             }
             for activity in db.query(VoteActivity).filter(VoteActivity.is_active == True).all()
@@ -169,7 +191,8 @@ class VoteService:
             db_activity.start_time = activity.start_time
             db_activity.end_time = activity.end_time
             db_activity.is_active = activity.is_active
-
+            db_activity.max_votes = activity.max_votes
+            db_activity.min_votes = activity.min_votes
             if activity.is_active:
                 VoteActivity.deactivate_others(db, exclude_id=activity_id)
             db.commit()
@@ -181,6 +204,8 @@ class VoteService:
                 "start_time": db_activity.start_time,
                 "end_time": db_activity.end_time,
                 "is_active": db_activity.is_active,
+                "max_votes": db_activity.max_votes,
+                "min_votes": db_activity.min_votes,
                 "candidate_ids": [assoc.candidate_id for assoc in db_activity.associations]
             }
         except Exception as e:
@@ -244,3 +269,23 @@ class VoteService:
         except Exception as e:
             db.rollback()
             raise ValueError(str(e))
+
+    @staticmethod
+    def create_bulk_votes(db: Session, candidate_ids: List[int], voter_id: str, activity_id: int):
+        try:
+            results = {'success_count': 0, 'errors': []}
+            db.begin()
+            for cid in candidate_ids:
+                try:
+                    VoteService.create_vote(db, cid, voter_id, activity_id)
+                    results['success_count'] += 1
+                except Exception as e:
+                    results['errors'].append({'candidate_id': cid, 'error': str(e)})
+            if len(results['errors']) > 0:
+                db.rollback()
+                return results
+            db.commit()
+            return results
+        except Exception as e:
+            db.rollback()
+            raise ValueError(f"Batch operation failed: {str(e)}")

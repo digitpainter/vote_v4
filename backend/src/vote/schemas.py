@@ -41,6 +41,8 @@ class ActivityCreate(BaseModel):
     end_time: datetime = datetime.now() + timedelta(days=1)
     is_active: bool = True
     candidate_ids: List[int] = [1,2,3]
+    max_votes: int = 12
+    min_votes: int = 1
 
 
 class ActivityResponse(BaseModel):
@@ -51,5 +53,7 @@ class ActivityResponse(BaseModel):
     end_time: datetime
     is_active: bool = True
     candidate_ids: List[int] = []
+    max_votes: int
+    min_votes: int
     class Config:
         orm_mode = True

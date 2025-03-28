@@ -56,6 +56,20 @@ export function AuthProvider({children}: { children: ReactNode }) {
     }
   };
 
+  const cleanToken = () => {
+    console.debug(`[API Request][${new Date().toISOString()}] 清理token请求`);
+    setIsAuthenticated(false);
+    setStaffId(null);
+    setName(null);
+    setAdminType(null);
+    setRole(null);
+    setToken(null);
+    SetAdminCollegeId(null);
+    localStorage.removeItem('token');
+    console.debug(`[API Request][${new Date().toISOString()}] 清理token请求成功`);
+  };
+
+
   const logout = () => {
     setIsAuthenticated(false);
     setStaffId(null);
@@ -89,16 +103,16 @@ export function AuthProvider({children}: { children: ReactNode }) {
       console.debug(`[API Data][${new Date().toISOString()}] 用户信息刷新成功，staff_id: ${data.staff_id}`);
       console.debug(`[API Data][${new Date().toISOString()}] 用户信息刷新成功，data: ${data}`);
       console.debug(`[API Data][${new Date().toISOString()}] 用户信息刷新成功，data: ${data.username}`);
-
+      console.debug(`[API Data][${new Date().toISOString()}] 用户信息刷新成功，admin_college_id: ${data.admin_college_id}`);
       setIsAuthenticated(true);
       setStaffId(data.staff_id);
       setName(data.username);
       setAdminType(data.admin_type);
       setRole(data.role);
-      SetAdminCollegeId(data.college_id);
+      SetAdminCollegeId(data.admin_college_id);
     } catch (error) {
       console.error('[API Error] 用户信息刷新错误:', error);
-      logout();
+      cleanToken();
     }
   };
 

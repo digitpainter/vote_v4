@@ -7,6 +7,8 @@ interface ActivityContextType {
   candidates: Candidate[];
   loading: boolean;
   error: string | null;
+  maxVotes: number;
+  minVotes: number;
   refreshActivities: () => Promise<void>;
   refreshCandidates: (candidateIds: string[]) => Promise<Candidate[]>;
 }
@@ -18,7 +20,8 @@ export function ActivityProvider({children}: { children: ReactNode }) {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  const [maxVotes, setMaxVotes] = useState(0);
+  const [minVotes, setMinVotes] = useState(0);
   const fetchCandidates = async (candidateIds: string[]) => {
     try {
       console.debug(`[API Request][${new Date().toLocaleString()}] Fetching candidates with IDs: ${candidateIds.join(', ')}`);
@@ -76,6 +79,9 @@ export function ActivityProvider({children}: { children: ReactNode }) {
         const candidatesData = await fetchCandidates(allCandidateIds);
         setCandidates(candidatesData);
       }
+      const { max_votes, min_votes } = data[0] || {};
+      setMaxVotes(max_votes || 0);
+      setMinVotes(min_votes || 0);
     } catch (error) {
       console.error('[API Error] Activity refresh error:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
@@ -95,6 +101,8 @@ export function ActivityProvider({children}: { children: ReactNode }) {
         candidates,
         loading,
         error,
+        maxVotes,
+        minVotes,
         refreshActivities,
         refreshCandidates: fetchCandidates
       }}

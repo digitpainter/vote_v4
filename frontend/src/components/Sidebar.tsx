@@ -31,15 +31,15 @@ export default function Sidebar() {
       
       <div className="p-4 border-t border-gray-200">
         <div className="flex items-center gap-4">
-          <Avatar size="large" shape="square" style={{ backgroundColor: '#1890ff'}}>{name}</Avatar>
+          <Avatar size="large" shape="square" style={{ backgroundColor: '#1890ff'}} gap={-1}>{name}</Avatar>
           <div className="flex items-center gap-6">
             <div>
               <div className="font-medium">{staffId}</div>
               <div className="font-medium">{role ? roleMap[role] : ''}</div>
               {adminType && (
                 <>
-                  <div className="font-medium">管理员类型：{adminType ? adminTypeMap[adminType] : ''}</div>
-                  <div className="font-medium">所属学院ID：{adminCollegeId}</div>
+                  <div className="font-medium">{adminTypeMap[adminType]}</div>
+                  <div className="font-medium">{adminCollegeId}</div>
                 </>
               )}
               <div className="mt-4 flex justify-end">

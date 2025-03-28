@@ -49,11 +49,17 @@ def get_candidates_batch(
         ))
     return candidate_responses
 
-@router.post("/vote/{candidate_id}")
-def create_vote(candidate_id: int, activity_id: int, voter_id: int, db: Session = Depends(get_db)):
+@router.post("/vote/batch")
+def create_bulk_votes(
+    candidate_ids: List[int] = Query(..., title="候选ID列表", example=[1,2,3]),
+    activity_id: int = Query(..., title="活动ID"),
+    voter_id: str = Query(..., title="投票人ID"),
+    db: Session = Depends(get_db),
+    _= check_roles(allowed_roles=["student"])
+):
     try:
-        vote = VoteService.create_vote(db, candidate_id, voter_id, activity_id)
-        return {"message": "Vote recorded successfully"}
+        results = VoteService.create_bulk_votes(db, candidate_ids, voter_id, activity_id)
+        return {"success_count": results['success_count'], "errors": results['errors']}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

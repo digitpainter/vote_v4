@@ -15,8 +15,12 @@ class VoteActivity(Base):
     end_time: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     is_active: Mapped[bool] = mapped_column(Boolean, default=False, server_default='0')
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    max_votes: Mapped[int] = mapped_column(Integer, default=12)
+    min_votes: Mapped[int] = mapped_column(Integer, default=1)
     associations: Mapped[list["ActivityCandidateAssociation"]] = relationship(
-        back_populates="activity"
+        back_populates="activity",
+        cascade='all, delete-orphan',
+        passive_deletes=True
     )
 
     @classmethod
@@ -31,8 +35,8 @@ class VoteActivity(Base):
 class ActivityCandidateAssociation(Base):
     __tablename__ = "activity_candidate_association"
 
-    activity_id: Mapped[int] = mapped_column(ForeignKey("vote_activities.id"), primary_key=True)
-    candidate_id: Mapped[int] = mapped_column(ForeignKey("candidates.id"), primary_key=True)
+    activity_id: Mapped[int] = mapped_column(ForeignKey("vote_activities.id", ondelete='CASCADE'), primary_key=True)
+    candidate_id: Mapped[int] = mapped_column(ForeignKey("candidates.id", ondelete='CASCADE'), primary_key=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     activity: Mapped["VoteActivity"] = relationship(back_populates="associations")
@@ -64,10 +68,9 @@ class Vote(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     candidate_id: Mapped[int] = mapped_column(ForeignKey("candidates.id"))
     activity_id: Mapped[int] = mapped_column(ForeignKey("vote_activities.id"), nullable=False)
-    voter_id: Mapped[int] = mapped_column(Integer, index=True, nullable=False)
+    voter_id: Mapped[str] = mapped_column(String(50), index=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     candidate: Mapped["Candidate"] = relationship("Candidate", back_populates="votes")
-    source: Mapped[str] = mapped_column(String(50), nullable=False)
     __table_args__ = (
         UniqueConstraint('activity_id', 'candidate_id', 'voter_id', name='uq_vote_record'),
     )
