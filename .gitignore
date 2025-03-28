@@ -35,3 +35,5 @@ backend/backend/
 
 frontend/package-lock.json
 package-lock.json
+backend/app.log.1
+backend/app.log.3
