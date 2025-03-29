@@ -1,7 +1,9 @@
 import { Activity } from '../types/activity';
+import { handleApiError } from '../utils/errorHandler';
 
 export async function submitVotes(activityId: Activity['id'], candidateIds: string[]) {
   try {
+
     const url = new URL('http://localhost:8000/vote/vote/batch');
     url.searchParams.append('activity_id', activityId.toString());
     candidateIds.forEach(id => url.searchParams.append('candidate_ids', id));
@@ -15,15 +17,14 @@ export async function submitVotes(activityId: Activity['id'], candidateIds: stri
       credentials: 'include',
       mode: 'cors'
     });
-
     if (!response.ok) {
-      console.error("Failed to submit votes",response)
-      throw new Error('Failed to submit votes');
+      const message = handleApiError(response.status ,await response.json());
+      // const error_info = await response.json();
+      const error = new Error(`Failed to submit votes ${message}`);
+      throw error;
     }
-
     return await response.json();
   } catch (error) {
-    console.error('[API Error] Vote submission error:', error);
     throw error;
   }
 }
@@ -39,8 +40,8 @@ export  async function getActivityVotes (activityId: number) {
       mode: 'cors'
     });
     if (!response.ok) {
-      console.error("Failed to get activity votes", response);
-      throw new Error('Failed to get activity votes');
+      const message = handleApiError(response.status ,await response.json());
+      throw new Error('Failed to get activity votes ' + message);
     }
 
     return await response.json();

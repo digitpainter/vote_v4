@@ -1,4 +1,5 @@
 import {createContext, useContext, useState, useEffect, ReactNode} from 'react';
+import { handleApiError } from '../utils/errorHandler';
 import {AdminType, UserRole} from '../types/auth';
 
 interface AuthContextType {
@@ -94,12 +95,11 @@ export function AuthProvider({children}: { children: ReactNode }) {
       });
 
       console.debug(`[API Response][${new Date().toISOString()}] 用户信息刷新响应状态: ${response.status}`);
-
-      if (!response.ok) {
-        throw new Error('Failed to refresh user');
-      }
-
       const data = await response.json();
+      if (!response.ok) {
+        const message = handleApiError(response.status, data);
+        throw new Error('Failed to refresh user' + message);
+      }
       console.debug(`[API Data][${new Date().toISOString()}] 用户信息刷新成功，staff_id: ${data.staff_id}`);
       console.debug(`[API Data][${new Date().toISOString()}] 用户信息刷新成功，data: ${data}`);
       console.debug(`[API Data][${new Date().toISOString()}] 用户信息刷新成功，data: ${data.username}`);

@@ -10,11 +10,10 @@ import ProtectedRoute from './components/ProtectedRoute';
 import CASLoginPage from './pages/CASLoginPage'
 import CasCallbackPage from './pages/CasCallbackPage';
 import { SidebarController } from './components/SidebarController';
-import Sidebar from './components/Sidebar';
-import { useState } from 'react';
 
 function App() {
-  const [sidebarVisible, setSidebarVisible] = useState(false);
+
+
   return (
     <ConfigProvider theme={{ token: { colorPrimary: '#1890ff' } }}>
       <Layout className='p-20px'>

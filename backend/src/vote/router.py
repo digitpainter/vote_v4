@@ -61,10 +61,13 @@ def create_bulk_votes(
     try:
         auth_header = request.headers.get("Authorization")
         if not auth_header:
-            raise HTTPException(status_code=401, detail="Authorization header missing")
+            raise HTTPException(status_code=401, detail="授权头信息缺失")
         
         token = auth_header.split(" ")[1] if " " in auth_header else auth_header
-        user_session = AuthService.get_user_session(token)
+        try:
+            user_session = AuthService.get_user_session(token)
+        except ValueError as e:
+            raise HTTPException(status_code=401, detail="Invalid or expired session")
         voter_id = user_session.staff_id
 
         # Check existing votes
@@ -73,7 +76,7 @@ def create_bulk_votes(
             Vote.activity_id == activity_id
         ).count()
         if existing_votes > 0:
-            raise HTTPException(status_code=400, detail="User has already voted in this activity")
+            raise HTTPException(status_code=400, detail="用户已在该活动中投过票")
 
         results = VoteService.create_bulk_votes(db, candidate_ids, voter_id, activity_id)
         return {"success_count": results['success_count'], "errors": results['errors']}
@@ -150,7 +153,7 @@ def get_my_activity_votes(
     try:
         auth_header = request.headers.get("Authorization")
         if not auth_header:
-            raise HTTPException(status_code=401, detail="Authorization header missing")
+            raise HTTPException(status_code=401, detail="授权头信息缺失")
         
         token = auth_header.split(" ")[1] if " " in auth_header else auth_header
         user_session = AuthService.get_user_session(token)

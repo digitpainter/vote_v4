@@ -1,4 +1,5 @@
 import {createContext, useContext, useState, useEffect, ReactNode} from 'react';
+import {handleApiError} from '../utils/errorHandler';
 import {Activity} from '../types/activity';
 import {Candidate} from '../types/candidate';
 
@@ -38,7 +39,8 @@ export function ActivityProvider({children}: { children: ReactNode }) {
       console.debug(`[API Response][${new Date().toLocaleString()}] Candidates fetch status: ${response.status}, content length: ${response.headers.get('Content-Length')}`);
 
       if (!response.ok) {
-        throw new Error('Failed to fetch candidates');
+        const message = handleApiError(response.status, await response.json(), { api });
+        throw new Error('Failed to fetch candidates '+ message);
       }
 
       const candidatesData = await response.json();
@@ -64,12 +66,13 @@ export function ActivityProvider({children}: { children: ReactNode }) {
       });
 
       console.debug(`[API Response][${new Date().toLocaleString()}] Activities fetch status: ${response.status}`);
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error('Failed to fetch active activities');
+        const message = handleApiError(response.status, data, { api });
+        throw new Error('Failed to fetch active activities '+message);
       }
 
-      const data = await response.json();
       console.debug(`[API Data][${new Date().toLocaleString()}] Received ${data.length} activities`);
       setActiveActivities(data);
 
