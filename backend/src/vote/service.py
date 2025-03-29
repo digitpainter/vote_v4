@@ -92,8 +92,11 @@ class VoteService:
             raise ValueError(str(e))
 
     @staticmethod
-    def get_vote_records(db: Session, voter_id: int):
-        return db.query(Vote).filter(Vote.voter_id == voter_id).all()
+    def get_activity_votes(db: Session, voter_id: str, activity_id: int):
+        return db.query(Vote.candidate_id).filter(
+            Vote.voter_id == voter_id,
+            Vote.activity_id == activity_id
+        ).all()
 
     @staticmethod
     def create_activity(db: Session, activity: ActivityCreate):

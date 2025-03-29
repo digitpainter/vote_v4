@@ -1,10 +1,11 @@
-import { Key, useState } from 'react';
-import { Table, Image, Typography, Button, message } from 'antd';
+import { Key, useState , useEffect} from 'react';
+import { Table, Image, Typography, Button, message,Alert } from 'antd';
 import { submitVotes } from '../api/vote';
 import { Candidate } from '../types/candidate';
 import { Activity } from '../types/activity';
 import { BASE64_PLACEHOLDER } from '../constants/images'
 import { useActivity } from '../contexts/ActivityContext';
+import {getActivityVotes } from "../api/vote"
 
 type CandidateTableProps = {
   candidates: Candidate[];
@@ -17,6 +18,26 @@ export function CandidateTable({
 }: CandidateTableProps) {
   const { maxVotes, minVotes } = useActivity();
   const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([]);
+  const [hasVoted, setHasVoted] = useState(false);
+  const [votedCandidates, setVotedCandidates] = useState<number[]>([]);
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const votesData = await getActivityVotes(activity.id);
+        console.info(votesData)
+        const hasVoted = votesData.length > 0;
+        setHasVoted(hasVoted);
+        setVotedCandidates(votesData);
+        if (hasVoted) {
+          setSelectedRowKeys(votesData);
+        }
+      } catch (error) {
+        console.error('Error checking voting status:', error);
+      }
+    };
+    checkStatus();
+  }, [activity.id]);
   const [expandedRowKey, setExpandedRowKey] = useState<Key | null>(null);
   return (
     <Table
@@ -40,12 +61,16 @@ export function CandidateTable({
       className="dir-rtl shadow-md rounded-lg overflow-hidden"
       rowClassName={(_, index) => index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}
       rowSelection={{
+        getCheckboxProps: (record) => ({
+          disabled: hasVoted
+        }),
         type: 'checkbox',
         selectedRowKeys,
         onChange: (keys) => setSelectedRowKeys(keys),
       }}
       onRow={(record) => ({
         onClick: () => {
+          if (hasVoted) return;
           const key = record.id;
           setSelectedRowKeys(prev =>
             prev.includes(key)
@@ -97,24 +122,38 @@ export function CandidateTable({
       scroll={{ x: true }}
       footer={() => (
         <div className="sticky bottom-0 bg-white p-4 border-t border-gray-200">
-          <Button
-            type="primary"
-            size="large"
-            disabled={selectedRowKeys.length < minVotes || selectedRowKeys.length > maxVotes}
-            className="w-full"
-            onClick={async () => {
-              try {
-                await submitVotes(activity.id, selectedRowKeys as string[]);
-                message.success('投票成功');
-                setSelectedRowKeys([]);
-              } catch (error) {
-                message.error('投票失败，请稍后重试');
-                console.error(error);
-              }
-            }}
-          >
-            投票（{selectedRowKeys.length}{minVotes !== maxVotes ? `（需投满${minVotes}-${maxVotes}票）` : `/${maxVotes}`}）
-          </Button>
+          {!hasVoted ? (
+            <Button
+              type="primary"
+              size="large"
+              disabled={selectedRowKeys.length < minVotes || selectedRowKeys.length > maxVotes}
+              className="w-full"
+              onClick={async () => {
+                try {
+                  await submitVotes(activity.id, selectedRowKeys as string[]);
+                  message.success('投票成功');
+                  setSelectedRowKeys([]);
+                  setHasVoted(true);
+                } catch (error) {
+                  message.error('投票失败，请稍后重试');
+                  console.error(error);
+                }
+              }}
+            >
+              投票（{selectedRowKeys.length}）{minVotes !== maxVotes ? `需投满${minVotes}-${maxVotes}票` : `最多${maxVotes}票`}
+            </Button>
+          ) : (
+            <Alert
+              message="您已完成本次投票，以下是您的投票记录"
+              type="success"
+              showIcon
+              className="w-full"
+              description={votedCandidates.map(id => {
+                const candidate = candidates.find(c => c.id === id);
+                return candidate ? <div key={id}>{candidate.name} ({candidate.college_name})</div> : null;
+              })}
+            />
+          )}
         </div>
       )}
     />

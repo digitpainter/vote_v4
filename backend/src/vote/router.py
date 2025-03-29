@@ -66,15 +66,23 @@ def create_bulk_votes(
         token = auth_header.split(" ")[1] if " " in auth_header else auth_header
         user_session = AuthService.get_user_session(token)
         voter_id = user_session.staff_id
-        
+
+        # Check existing votes
+        existing_votes = db.query(Vote).filter(
+            Vote.voter_id == voter_id,
+            Vote.activity_id == activity_id
+        ).count()
+        if existing_votes > 0:
+            raise HTTPException(status_code=400, detail="User has already voted in this activity")
+
         results = VoteService.create_bulk_votes(db, candidate_ids, voter_id, activity_id)
         return {"success_count": results['success_count'], "errors": results['errors']}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/votes/{voter_id}", response_model=List[VoteRecord])
-def get_vote_records(voter_id: int, db: Session = Depends(get_db)):
-    return VoteService.get_vote_records(db, voter_id)
+# @router.get("/votes/{voter_id}", response_model=List[VoteRecord])
+# def get_vote_records(voter_id: int, db: Session = Depends(get_db)):
+#     return VoteService.get_vote_records(db, voter_id)
 
 @router.post("/activities/", response_model=ActivityResponse)
 def create_activity(activity: ActivityCreate, db: Session = Depends(get_db)):
@@ -128,5 +136,27 @@ def delete_candidate(candidate_id: int, db: Session = Depends(get_db), _= check_
     try:
         VoteService.delete_candidate(db, candidate_id)
         return {"message": "Candidate deleted successfully"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/activities/{activity_id}/my-votes", response_model=List[int])
+def get_my_activity_votes(
+    activity_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    _= check_roles(allowed_roles=["student"])
+):
+    try:
+        auth_header = request.headers.get("Authorization")
+        if not auth_header:
+            raise HTTPException(status_code=401, detail="Authorization header missing")
+        
+        token = auth_header.split(" ")[1] if " " in auth_header else auth_header
+        user_session = AuthService.get_user_session(token)
+        voter_id = user_session.staff_id
+        
+        votes = VoteService.get_activity_votes(db, voter_id, activity_id)
+        return [vote[0] for vote in votes]
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
