@@ -1,4 +1,4 @@
-from logging import info
+from logging import info, debug
 from fastapi import APIRouter, HTTPException, Request, Response, Depends
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.responses import RedirectResponse
@@ -40,15 +40,17 @@ async def cas_login():
 async def cas_callback(ticket: str, request: Request, response: Response):
     try:
         async with httpx.AsyncClient() as client:
+            debug(f"开始CAS票据验证流程，ticket参数接收成功: {ticket}")
             validate_url = f"{CAS_SERVER_URL}/serviceValidate?ticket={ticket}&service={SERVICE_URL}"
-            
+            debug(f"正在向CAS验证服务发送请求，目标URL: {validate_url}")
+            debug("准备发起CAS服务验证HTTP请求")
             cas_response = await client.get(validate_url)
-            
+            debug(f"收到CAS服务响应，状态码: {cas_response.status_code}")
             if cas_response.status_code != 200:
                 raise HTTPException(status_code=401, detail=f"无效的CAS票据，服务器返回{cas_response.status_code}")
-
+            debug("开始解析CAS服务返回的JSON响应数据")
             data = cas_response.json()
-            
+            debug(f"用户认证状态: {data.get('authenticated')}，准备创建用户会话")
             if not data.get('authenticated'):
                 raise HTTPException(status_code=401, detail="CAS认证失败")
                 
@@ -64,7 +66,7 @@ async def cas_callback(ticket: str, request: Request, response: Response):
                 }
             }
             
-    except Exception as e:
+    except HTTPException as e:
         return {
             "authenticated": False,
             "error": str(e)

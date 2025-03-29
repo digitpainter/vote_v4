@@ -1,5 +1,6 @@
 import { Key, useState } from 'react';
-import { Table, Image, Typography ,Button} from 'antd';
+import { Table, Image, Typography, Button, message } from 'antd';
+import { submitVotes } from '../api/vote';
 import { Candidate } from '../types/candidate';
 import { Activity } from '../types/activity';
 import { BASE64_PLACEHOLDER } from '../constants/images'
@@ -101,7 +102,16 @@ export function CandidateTable({
             size="large"
             disabled={selectedRowKeys.length < minVotes || selectedRowKeys.length > maxVotes}
             className="w-full"
-            onClick={() => console.log('提交投票:', selectedRowKeys)}
+            onClick={async () => {
+              try {
+                await submitVotes(activity.id, selectedRowKeys as string[]);
+                message.success('投票成功');
+                setSelectedRowKeys([]);
+              } catch (error) {
+                message.error('投票失败，请稍后重试');
+                console.error(error);
+              }
+            }}
           >
             投票（{selectedRowKeys.length}{minVotes !== maxVotes ? `（需投满${minVotes}-${maxVotes}票）` : `/${maxVotes}`}）
           </Button>

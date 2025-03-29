@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -6,6 +6,7 @@ from .schemas import CandidateCreate, CandidateResponse, VoteRecord, ActivityCre
 from .service import VoteService
 from ..database import get_db
 from ..auth.dependencies import check_roles
+from ..auth.service import AuthService
 from ..models import  Vote
 
 router = APIRouter()
@@ -51,13 +52,21 @@ def get_candidates_batch(
 
 @router.post("/vote/batch")
 def create_bulk_votes(
+    request: Request,
     candidate_ids: List[int] = Query(..., title="候选ID列表", example=[1,2,3]),
     activity_id: int = Query(..., title="活动ID"),
-    voter_id: str = Query(..., title="投票人ID"),
     db: Session = Depends(get_db),
     _= check_roles(allowed_roles=["student"])
 ):
     try:
+        auth_header = request.headers.get("Authorization")
+        if not auth_header:
+            raise HTTPException(status_code=401, detail="Authorization header missing")
+        
+        token = auth_header.split(" ")[1] if " " in auth_header else auth_header
+        user_session = AuthService.get_user_session(token)
+        voter_id = user_session.staff_id
+        
         results = VoteService.create_bulk_votes(db, candidate_ids, voter_id, activity_id)
         return {"success_count": results['success_count'], "errors": results['errors']}
     except ValueError as e:
