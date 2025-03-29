@@ -210,9 +210,9 @@ class VoteService:
                 "min_votes": db_activity.min_votes,
                 "candidate_ids": [assoc.candidate_id for assoc in db_activity.associations]
             }
-        except Exception as e:
-            db.rollback()
-            raise ValueError(str(e))
+        except ValueError as e:
+            VoteService.logger.error(f"Validation error: {str(e)}")
+            raise
 
     @staticmethod
     def delete_activity(db: Session, activity_id: int):
@@ -225,9 +225,9 @@ class VoteService:
             db.delete(db_activity)
             db.commit()
             return True
-        except Exception as e:
-            db.rollback()
-            raise ValueError(str(e))
+        except ValueError as e:
+            VoteService.logger.warning(f"Business rule violation: {e}")
+            raise
 
     @staticmethod
     def update_candidate(db: Session, candidate_id: int, candidate: CandidateCreate):
