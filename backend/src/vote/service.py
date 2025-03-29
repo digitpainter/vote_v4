@@ -7,6 +7,8 @@ from logging.handlers import RotatingFileHandler
 
 from sqlalchemy.sql.operators import is_associative
 
+from backend.src.auth.service import AuthService
+
 from ..models import Candidate, Vote, VoteActivity, ActivityCandidateAssociation
 from .schemas import CandidateCreate, ActivityCreate
 

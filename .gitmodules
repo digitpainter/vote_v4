@@ -1,0 +1,3 @@
+[submodule "vote_v4_cas"]
+	path = vote_v4_cas
+	url = https://github.com/digitpainter/vote_v4_cas.git
