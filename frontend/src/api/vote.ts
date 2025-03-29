@@ -1,3 +1,4 @@
+import axios from 'axios';
 
 interface BatchVoteParams {
   activityId: number;
@@ -6,7 +7,7 @@ interface BatchVoteParams {
 
 export const batchVote = async (params: BatchVoteParams, token: string) => {
   try {
-    const response = await fetch('/vote/vote/batch', 
+    const response = await axios.post('/vote/vote/batch', 
       { candidate_ids: params.candidateIds, activity_id: params.activityId },
       {
         headers: {
