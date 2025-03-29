@@ -38,7 +38,6 @@ export  async function getActivityVotes (activityId: number) {
       credentials: 'include',
       mode: 'cors'
     });
-
     if (!response.ok) {
       console.error("Failed to get activity votes", response);
       throw new Error('Failed to get activity votes');

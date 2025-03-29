@@ -279,7 +279,7 @@ class VoteService:
     def create_bulk_votes(db: Session, candidate_ids: List[int], voter_id: str, activity_id: int):
         try:
             results = {'success_count': 0, 'errors': []}
-            db.begin()
+            # db.begin()
             for cid in candidate_ids:
                 try:
                     VoteService.create_vote(db, cid, voter_id, activity_id)

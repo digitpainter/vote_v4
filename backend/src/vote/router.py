@@ -80,9 +80,9 @@ def create_bulk_votes(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-# @router.get("/votes/{voter_id}", response_model=List[VoteRecord])
-# def get_vote_records(voter_id: int, db: Session = Depends(get_db)):
-#     return VoteService.get_vote_records(db, voter_id)
+@router.get("/votes/{voter_id}", response_model=List[VoteRecord])
+def get_vote_records(voter_id: int, db: Session = Depends(get_db)):
+    return VoteService.get_vote_records(db, voter_id)
 
 @router.post("/activities/", response_model=ActivityResponse)
 def create_activity(activity: ActivityCreate, db: Session = Depends(get_db)):

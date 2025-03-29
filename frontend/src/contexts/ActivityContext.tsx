@@ -55,7 +55,7 @@ export function ActivityProvider({children}: { children: ReactNode }) {
     setError(null);
     try {
       console.debug(`[API Request][${new Date().toLocaleString()}] Fetching active activities`);
-      const response = await fetch('http://localhost:8000/vote/activities/active/', {
+       const response = await fetch('http://localhost:8000/vote/activities/active/', {
         headers: {
           'Content-Type': 'application/json',
         },

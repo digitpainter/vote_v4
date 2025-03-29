@@ -132,7 +132,6 @@ export function CandidateTable({
                 try {
                   await submitVotes(activity.id, selectedRowKeys as string[]);
                   message.success('投票成功');
-                  setSelectedRowKeys([]);
                   setHasVoted(true);
                 } catch (error) {
                   message.error('投票失败，请稍后重试');
@@ -144,14 +143,10 @@ export function CandidateTable({
             </Button>
           ) : (
             <Alert
-              message="您已完成本次投票，以下是您的投票记录"
+              message="您已完成本次投票,感谢支持"
               type="success"
               showIcon
               className="w-full"
-              description={votedCandidates.map(id => {
-                const candidate = candidates.find(c => c.id === id);
-                return candidate ? <div key={id}>{candidate.name} ({candidate.college_name})</div> : null;
-              })}
             />
           )}
         </div>
