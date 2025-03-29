@@ -77,17 +77,19 @@ async def get_current_user(request: Request):
     """Get current authenticated user information"""
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Not authenticated")
+        raise HTTPException(status_code=401, detail="没有登录")
     print("get_current_user token")
     
     token = auth_header.split(" ")[1]
     if not AuthService.is_valid_token(token):
-        raise HTTPException(status_code=401, detail="Invalid or expired session")
-        
-    user_session = AuthService.get_user_session(token)
-    
+        raise HTTPException(status_code=401, detail="会话过期或者无效,需要重新登录")
+    try:    
+        user_session = AuthService.get_user_session(token)
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail="会话过期或者无效,需要重新登录")
+
     if not user_session:
-        raise HTTPException(status_code=401, detail="Invalid or expired session")
+        raise HTTPException(status_code=401, detail="会话过期或者无效,需要重新登录")
     
     return {
         "staff_id": user_session.staff_id,

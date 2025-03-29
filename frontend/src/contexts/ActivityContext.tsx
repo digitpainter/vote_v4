@@ -39,7 +39,7 @@ export function ActivityProvider({children}: { children: ReactNode }) {
       console.debug(`[API Response][${new Date().toLocaleString()}] Candidates fetch status: ${response.status}, content length: ${response.headers.get('Content-Length')}`);
 
       if (!response.ok) {
-        const message = handleApiError(response.status, await response.json(), { api });
+        const message = handleApiError(response.status, await response.json());
         throw new Error('Failed to fetch candidates '+ message);
       }
 
@@ -69,7 +69,7 @@ export function ActivityProvider({children}: { children: ReactNode }) {
       const data = await response.json();
 
       if (!response.ok) {
-        const message = handleApiError(response.status, data, { api });
+        const message = handleApiError(response.status, data);
         throw new Error('Failed to fetch active activities '+message);
       }
 
