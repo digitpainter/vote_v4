@@ -134,14 +134,15 @@ export default function StatsPage() {
 
   return (
     <Spin spinning={loading} tip="加载中...">
-      <div className="p-6">
+      <div className="p-8 bg-gray-50">
         {/* 候选人得票统计卡片 */}
+        <div className="mb-8">
         <Card 
-          className="mb-6 shadow-md"
+          className="relative hover:shadow-lg transition-shadow duration-300 shadow-md mb-8"
           title={
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center py-2">
               <Title level={4} className="mb-0">
-                <BarChartOutlined /> 候选人得票统计
+                <BarChartOutlined className="mr-2 text-blue-500" /> 候选人得票统计
               </Title>
               <Input
                 placeholder="搜索候选人或学院"
@@ -155,30 +156,45 @@ export default function StatsPage() {
         >
           <VoteStatsTable stats={stats} searchText={searchText} />
         </Card>
-
+        </div>
         {/* 每日投票趋势卡片 */}
-        <Card className="shadow-md mb-6">
-          <Title level={4}>
-            <LineChartOutlined /> 每日投票趋势
-          </Title>
+        <div className="mb-8">
+          <Card 
+            className="relative hover:shadow-lg transition-shadow duration-300 shadow-md"
+          title={
+            <div className="py-2">
+              <Title level={4} className="mb-0">
+                <LineChartOutlined className="mr-2 text-blue-500" /> 每日投票趋势
+              </Title>
+            </div>
+          }
+        >
           <Spin spinning={trendLoading} tip="加载趋势数据...">
-            <div className="h-80">
+            <div className="h-96">
               <DailyVoteChart trendData={trendData} />
             </div>
           </Spin>
         </Card>
-
+        </div>
         {/* 候选人投票对比卡片 */}
-        <Card className="shadow-md">
-          <Title level={4}>
-            <CalendarOutlined /> 候选人投票对比
-          </Title>
-          <Spin spinning={trendLoading} tip="加载对比数据...">
-            <div className="h-80">
-              <CandidateComparisonChart trendData={trendData} />
-            </div>
-          </Spin>
-        </Card>
+        <div className="mb-8">
+          <Card 
+            className="relative hover:shadow-lg transition-shadow duration-300 shadow-md"
+            title={
+              <div className="py-2">
+                <Title level={4} className="mb-0">
+                  <CalendarOutlined className="mr-2 text-blue-500" /> 候选人投票对比
+                </Title>
+              </div>
+            }
+          >
+            <Spin spinning={trendLoading} tip="加载对比数据...">
+              <div className="h-96">
+                <CandidateComparisonChart trendData={trendData} />
+              </div>
+            </Spin>
+          </Card>
+        </div>
       </div>
     </Spin>
   );
