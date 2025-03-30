@@ -5,6 +5,10 @@ import Sidebar from './Sidebar';
 export function SidebarController() {
   const [sidebarVisible, setSidebarVisible] = useState(false);
 
+  const closeSidebar = () => {
+    setSidebarVisible(false);
+  };
+
   return (
     <>
       <FloatButton.Group>
@@ -18,11 +22,11 @@ export function SidebarController() {
       <Drawer
         placement="right"
         closable={true}
-        onClose={() => setSidebarVisible(false)}
+        onClose={closeSidebar}
         open={sidebarVisible}
         width={280}
       >
-        <Sidebar />
+        <Sidebar onClose={closeSidebar} />
       </Drawer>
     </>
   );

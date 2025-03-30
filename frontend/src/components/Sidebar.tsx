@@ -15,8 +15,18 @@ const adminTypeMap: Record<AdminType, string> = {
   [AdminType.COLLEGE]: '院级管理员',
 };
 
-export default function Sidebar() {
-  const { staffId, name , role , adminType , adminCollegeId,logout} = useAuth();
+interface SidebarProps {
+  onClose?: () => void;
+}
+
+export default function Sidebar({ onClose }: SidebarProps = {}) {
+  const { staffId, name , role , adminType , adminCollegeId, logout} = useAuth();
+
+  const handleMenuClick = () => {
+    if (onClose) {
+      onClose();
+    }
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -24,9 +34,9 @@ export default function Sidebar() {
         <Menu
           mode="inline"
           items={[
-            { key: '1', label: <Link to="/">投票</Link> },
-            { key: '2', label: <Link to="/stats">统计</Link> },
-            { key: '3', label: <Link to="/manage">管理</Link> }, 
+            { key: '1', label: <Link to="/" onClick={handleMenuClick}>投票</Link> },
+            { key: '2', label: <Link to="/stats" onClick={handleMenuClick}>统计</Link> },
+            { key: '3', label: <Link to="/manage" onClick={handleMenuClick}>管理</Link> }, 
           ]}
         />
       </div>
