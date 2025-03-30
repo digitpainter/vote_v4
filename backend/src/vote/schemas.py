@@ -66,3 +66,13 @@ class ActiveVoteStatistics(BaseModel):
 
     class Config:
         orm_mode = True
+
+class VoteTrendItem(BaseModel):
+    date: str
+    count: int
+    candidate_id: Optional[int] = None
+    candidate_name: Optional[str] = None
+
+class VoteTrendResponse(BaseModel):
+    trends: List[VoteTrendItem]
+    daily_totals: List[VoteTrendItem]

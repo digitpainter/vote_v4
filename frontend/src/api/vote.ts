@@ -1,4 +1,4 @@
-import { Activity } from '../types/activity';
+import { Activity, VoteTrendData } from '../types/activity';
 import { handleApiError } from '../utils/errorHandler';
 
 export async function submitVotes(activityId: Activity['id'], candidateIds: string[]) {
@@ -69,6 +69,28 @@ export async function getActiveStatistics() {
     return await response.json();
   } catch (error) {
     console.error('[API Error] Get voting statistics error:', error);
+    throw error;
+  }
+}
+
+export async function getVoteTrends(): Promise<VoteTrendData> {
+  try {
+    const response = await fetch(`http://localhost:8000/vote/vote-trends`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+      credentials: 'include',
+      mode: 'cors'
+    });
+
+    if (!response.ok) {
+      const message = handleApiError(response.status, await response.json());
+      throw new Error('Failed to get vote trends data: ' + message);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('[API Error] Get vote trends error:', error);
     throw error;
   }
 }

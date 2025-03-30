@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from sqlalchemy.orm import Session
 from typing import List
 
-from .schemas import CandidateCreate, CandidateResponse, VoteRecord, ActivityCreate, ActivityResponse, ActiveVoteStatistics
+from .schemas import CandidateCreate, CandidateResponse, VoteRecord, ActivityCreate, ActivityResponse, ActiveVoteStatistics, VoteTrendResponse
 from .service import VoteService
 from ..database import get_db
 from ..auth.dependencies import check_roles
@@ -174,3 +174,8 @@ def get_my_activity_votes(
         return [vote[0] for vote in votes]
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/vote-trends", response_model=VoteTrendResponse)
+def get_vote_trends(db: Session = Depends(get_db)):
+    """获取投票趋势数据，包括每日投票总数和各候选人投票数"""
+    return VoteService.get_vote_trends(db)

@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timedelta
 from fastapi import HTTPException, Query
 from typing import Optional, List
 import logging
@@ -11,7 +11,7 @@ from sqlalchemy.sql.operators import is_associative
 from backend.src.auth.service import AuthService
 
 from ..models import Candidate, Vote, VoteActivity, ActivityCandidateAssociation
-from .schemas import CandidateCreate, ActivityCreate
+from .schemas import CandidateCreate, ActivityCreate, VoteTrendItem, VoteTrendResponse
 
 class VoteService:
     # Configure logging
@@ -319,3 +319,71 @@ class VoteService:
         except Exception as e:
             db.rollback()
             raise ValueError(f"Batch operation failed: {str(e)}")
+
+    @staticmethod
+    def get_vote_trends(db: Session) -> VoteTrendResponse:
+        """获取投票趋势数据，按日期统计总投票数和每个候选人的投票数"""
+        # 获取当前活动
+        active_activities = VoteService.get_active_activities(db)
+        if not active_activities:
+            return VoteTrendResponse(trends=[], daily_totals=[])
+        
+        activity_id = active_activities[0]["id"]
+
+        # 计算最早投票日期和当前日期
+        earliest_vote = db.query(func.min(Vote.created_at)).filter(Vote.activity_id == activity_id).scalar()
+        if not earliest_vote:
+            return VoteTrendResponse(trends=[], daily_totals=[])
+        
+        today = datetime.now().date()
+        start_date = earliest_vote.date()
+        
+        # 生成日期范围
+        date_range = [(start_date + timedelta(days=i)).strftime('%Y-%m-%d') 
+                      for i in range((today - start_date).days + 1)]
+        
+        # 查询每天的投票总数
+        daily_totals_query = (
+            db.query(
+                func.date(Vote.created_at).label('date'),
+                func.count().label('count')
+            )
+            .filter(Vote.activity_id == activity_id)
+            .group_by(func.date(Vote.created_at))
+            .all()
+        )
+        
+        daily_totals = []
+        for date_str in date_range:
+            count = 0
+            for record in daily_totals_query:
+                if record.date.strftime('%Y-%m-%d') == date_str:
+                    count = record.count
+                    break
+            daily_totals.append(VoteTrendItem(date=date_str, count=count))
+        
+        # 查询每个候选人每天的投票数
+        candidate_trends_query = (
+            db.query(
+                Candidate.id.label('candidate_id'),
+                Candidate.name.label('candidate_name'),
+                func.date(Vote.created_at).label('date'),
+                func.count().label('count')
+            )
+            .join(Vote, Vote.candidate_id == Candidate.id)
+            .filter(Vote.activity_id == activity_id)
+            .group_by(Candidate.id, Candidate.name, func.date(Vote.created_at))
+            .all()
+        )
+        
+        # 处理每个候选人的趋势数据
+        trends = []
+        for record in candidate_trends_query:
+            trends.append(VoteTrendItem(
+                date=record.date.strftime('%Y-%m-%d'),
+                count=record.count,
+                candidate_id=record.candidate_id,
+                candidate_name=record.candidate_name
+            ))
+        
+        return VoteTrendResponse(trends=trends, daily_totals=daily_totals)
