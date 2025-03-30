@@ -110,14 +110,6 @@ export default function AdminLayout() {
       <Layout>
         <Header className="p-0 bg-white flex justify-between items-center px-6 shadow-sm">
           <Breadcrumb items={getBreadcrumb()} />
-          <Space>
-            <Avatar icon={<UserOutlined />} />
-            <span>{name || "管理员"}</span>
-            <LogoutOutlined 
-              className="text-red-500 cursor-pointer ml-4" 
-              onClick={logout}
-            />
-          </Space>
         </Header>
         <Content className="m-4">
           <div className="p-6 bg-white rounded-lg min-h-full">

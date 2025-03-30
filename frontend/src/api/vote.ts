@@ -373,3 +373,31 @@ export async function removeCandidateFromActivity(activityId: number, candidateI
     throw error;
   }
 }
+
+// 上传图片API
+export async function uploadImage(file: File): Promise<string> {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await fetch('http://localhost:8000/vote/upload-image/', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: formData,
+      credentials: 'include',
+      mode: 'cors'
+    });
+
+    if (!response.ok) {
+      throw new Error('图片上传失败');
+    }
+    
+    const data = await response.json();
+    return data.image_url;
+  } catch (error) {
+    console.error('[API Error] 图片上传失败:', error);
+    throw error;
+  }
+}

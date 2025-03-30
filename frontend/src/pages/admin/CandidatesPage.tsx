@@ -17,7 +17,8 @@ import {
   Avatar,
   Divider,
   Row,
-  Col
+  Col,
+  Spin
 } from 'antd';
 import { 
   PlusOutlined, 
@@ -27,14 +28,15 @@ import {
   TeamOutlined,
   SearchOutlined,
   EyeOutlined,
-  CalendarOutlined
+  CalendarOutlined,
+  LoadingOutlined
 } from '@ant-design/icons';
 import type { TableColumnsType } from 'antd';
 import type { InputRef } from 'antd';
 import type { ColumnType } from 'antd/es/table';
 import type { FilterConfirmProps } from 'antd/es/table/interface';
-import type { UploadFile } from 'antd/es/upload/interface';
-import { getAllCandidates, updateCandidate, createCandidate, deleteCandidate, removeCandidateFromActivity, getAllActivities } from '../../api/vote';
+import type { UploadFile, RcFile } from 'antd/es/upload/interface';
+import { getAllCandidates, updateCandidate, createCandidate, deleteCandidate, removeCandidateFromActivity, getAllActivities, uploadImage } from '../../api/vote';
 import { getAllCollegeInfo, CollegeInfo, getCollegeNameById } from '../../api/college';
 import { Activity } from '../../types/activity';
 
@@ -52,6 +54,9 @@ interface Candidate {
   photo: string;
   vote_count: number;
   activities?: Activity[]; // 添加关联活动字段
+  quote?: string;
+  review?: string;
+  video_url?: string;
 }
 
 // 编辑/创建候选人时提交的数据格式
@@ -81,6 +86,8 @@ export default function CandidatesPage() {
   const searchInput = useRef<InputRef>(null);
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [currentActivityId, setCurrentActivityId] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string>('');
 
   // 获取候选人数据并更新学院名称
   const fetchCandidates = async () => {
@@ -443,6 +450,9 @@ export default function CandidatesPage() {
       college_id: candidate.college_id,
       bio: candidate.bio,
       college_name: getCollegeNameById(collegeInfoList, candidate.college_id),
+      quote: candidate.quote,
+      review: candidate.review,
+      video_url: candidate.video_url
     });
     setFileList([
       {
@@ -491,6 +501,54 @@ export default function CandidatesPage() {
     }
   };
 
+  // 处理图片上传前的预处理
+  const beforeUpload = (file: RcFile) => {
+    // 检查文件类型
+    const isImage = file.type.startsWith('image/');
+    if (!isImage) {
+      message.error('只能上传图片文件!');
+      return false;
+    }
+    
+    // 检查文件大小
+    const isLt2M = file.size / 1024 / 1024 < 2;
+    if (!isLt2M) {
+      message.error('图片大小不能超过2MB!');
+      return false;
+    }
+    
+    // 执行上传操作
+    handleUpload(file);
+    return false; // 阻止自动上传
+  };
+
+  // 处理图片上传
+  const handleUpload = async (file: RcFile) => {
+    try {
+      setUploading(true);
+      const imageUrl = await uploadImage(file);
+      
+      // 更新文件列表显示
+      setFileList([
+        {
+          uid: '-1',
+          name: file.name,
+          status: 'done',
+          url: imageUrl,
+        },
+      ]);
+      
+      // 保存上传后的图片URL
+      setUploadedImageUrl(imageUrl);
+      message.success('图片上传成功');
+    } catch (error) {
+      console.error('图片上传失败:', error);
+      message.error('图片上传失败，请重试');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   // 处理表单提交
   const handleFormSubmit = async () => {
     try {
@@ -501,15 +559,18 @@ export default function CandidatesPage() {
       if (values.college_id && collegeInfoList.length > 0) {
         collegeName = getCollegeNameById(collegeInfoList, values.college_id);
       }
+
+      // 使用上传后的图片URL，如果没有上传图片则使用默认图片或当前候选人的图片
+      const photoUrl = uploadedImageUrl || 
+                      (fileList.length > 0 && fileList[0].url ? fileList[0].url : 
+                      (currentCandidate?.photo || 'https://placekitten.com/200/200'));
       
       // 准备要提交的数据
       const candidateData: CandidateFormData = {
         name: values.name,
         college_id: values.college_id,
         college_name: collegeName,
-        photo: fileList.length > 0 && fileList[0].url 
-          ? fileList[0].url 
-          : 'https://placekitten.com/200/200', // 默认图片
+        photo: photoUrl,
         bio: values.bio,
         quote: values.quote,
         review: values.review,
@@ -526,6 +587,8 @@ export default function CandidatesPage() {
         message.success('候选人更新成功');
       }
       
+      // 重置上传状态
+      setUploadedImageUrl('');
       setIsModalVisible(false);
       // 刷新候选人列表和活动关联
       refreshData();
@@ -533,6 +596,12 @@ export default function CandidatesPage() {
       console.error('提交表单失败:', error);
       message.error('操作失败，请检查输入并重试');
     }
+  };
+
+  // 处理取消弹窗
+  const handleCancel = () => {
+    setIsModalVisible(false);
+    setUploadedImageUrl('');
   };
 
   // 处理学院选择
@@ -577,7 +646,7 @@ export default function CandidatesPage() {
         title={modalType === 'create' ? '新增候选人' : '编辑候选人'}
         open={isModalVisible}
         onOk={handleFormSubmit}
-        onCancel={() => setIsModalVisible(false)}
+        onCancel={handleCancel}
         okText={modalType === 'create' ? '创建' : '保存'}
         cancelText="取消"
         width={600}
@@ -652,21 +721,30 @@ export default function CandidatesPage() {
           <Form.Item
             name="photo"
             label="照片"
+            extra="支持JPG/PNG格式，大小不超过2MB"
           >
             <Upload
               listType="picture-card"
               fileList={fileList}
               onChange={({ fileList }) => setFileList(fileList)}
-              beforeUpload={() => false}
+              beforeUpload={beforeUpload}
               maxCount={1}
+              showUploadList={{
+                showPreviewIcon: true,
+                showRemoveIcon: true,
+                showDownloadIcon: false,
+              }}
             >
-              {fileList.length === 0 && (
+              {fileList.length >= 1 ? null : (
                 <div>
-                  <PlusOutlined />
-                  <div style={{ marginTop: 8 }}>上传照片</div>
+                  {uploading ? <LoadingOutlined /> : <PlusOutlined />}
+                  <div style={{ marginTop: 8 }}>
+                    {uploading ? '上传中' : '上传照片'}
+                  </div>
                 </div>
               )}
             </Upload>
+            {uploading && <Spin tip="图片上传中..." />}
           </Form.Item>
         </Form>
       </Modal>

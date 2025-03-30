@@ -1,10 +1,14 @@
-from fastapi import APIRouter, HTTPException, Depends, Query, Request
+from fastapi import APIRouter, HTTPException, Depends, Query, Request, File, UploadFile, status
 from sqlalchemy.orm import Session
 from typing import List
 import httpx
 import json
 import os
 from fastapi.responses import JSONResponse
+import shutil
+from pathlib import Path
+from datetime import datetime
+import uuid
 
 from .schemas import CandidateCreate, CandidateResponse, VoteRecord, ActivityCreate, ActivityResponse, ActiveVoteStatistics, VoteTrendResponse
 from .service import VoteService
@@ -12,6 +16,7 @@ from ..database import get_db
 from ..auth.dependencies import check_roles
 from ..auth.service import AuthService
 from ..models import  Vote
+from ..config import IMAGES_DIR, IMAGE_CONFIG, BASE_URL
 
 router = APIRouter()
 
@@ -251,3 +256,58 @@ async def get_college_info():
         print(f"获取学院信息错误: {e}")
         # 请求失败时使用备用数据
         return fallback_data
+
+@router.post("/upload-image/", response_model=dict)
+async def upload_image(
+    file: UploadFile = File(...),
+):
+    """
+    上传图片，返回图片URL
+    """
+    # 检查文件类型
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="仅支持上传图片文件"
+        )
+    
+    # 获取文件扩展名并检查是否为允许的扩展名
+    file_extension = os.path.splitext(file.filename)[1].lower()
+    if file_extension not in IMAGE_CONFIG["allowed_extensions"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"不支持的文件格式，允许的格式：{', '.join(IMAGE_CONFIG['allowed_extensions'])}"
+        )
+    
+    # 检查文件大小
+    file_size = 0
+    chunk_size = 1024  # 1KB
+    while chunk := await file.read(chunk_size):
+        file_size += len(chunk)
+        if file_size > IMAGE_CONFIG["max_size"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"文件大小超过限制，最大允许大小：{IMAGE_CONFIG['max_size'] // (1024 * 1024)}MB"
+            )
+    
+    # 重置文件指针以便后续保存
+    await file.seek(0)
+    
+    # 生成唯一文件名，避免文件名冲突
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    unique_id = str(uuid.uuid4())[:8]
+    new_filename = f"{timestamp}_{unique_id}{file_extension}"
+    
+    # 保存文件
+    file_path = IMAGES_DIR / new_filename
+    
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    finally:
+        await file.close()
+    
+    # 构建完整URL
+    image_url = f"{BASE_URL}/uploads/images/{new_filename}"
+    
+    return {"image_url": image_url, "filename": new_filename}

@@ -1,18 +1,27 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 import logging
 from logging.handlers import RotatingFileHandler
 from fastapi import Request
 from datetime import datetime
 from typing import Optional, List
+import os
+from pathlib import Path
 
 from .auth.router import router as auth_router
 from .admin.router import router as admin_router
 from .vote.router import router as vote_router
 from .database import init_db
 from backend.src import database
+from .config import UPLOAD_DIR
 
-app = FastAPI()
+# 不需要再次创建上传目录，配置文件已经创建了
+# UPLOAD_DIR = Path("./uploads")
+# os.makedirs(UPLOAD_DIR / "images", exist_ok=True)
+
+app = FastAPI(title="Vote API")
 
 # Include routers
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
@@ -42,6 +51,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# 添加静态文件服务
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Health check endpoint
 @app.get("/")
