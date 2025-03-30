@@ -116,13 +116,13 @@ def update_activity(activity_id: int, activity: ActivityCreate, db: Session = De
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-# @router.delete("/activities/{activity_id}")
-# def delete_activity(activity_id: int, db: Session = Depends(get_db), _= check_roles(allowed_admin_types=["school"],allowed_roles=["teacher"])):
-#     try:
-#         VoteService.delete_activity(db, activity_id)
-#         return {"message": "Activity deleted successfully"}
-#     except ValueError as e:
-#         raise HTTPException(status_code=400, detail=str(e))
+@router.delete("/activities/{activity_id}")
+def delete_activity(activity_id: int, db: Session = Depends(get_db)):
+    try:
+        VoteService.delete_activity(db, activity_id)
+        return {"message": "Activity deleted successfully"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.put("/candidates/{candidate_id}", response_model=CandidateResponse)
 def update_candidate(candidate_id: int, user: CandidateCreate, db: Session = Depends(get_db)):
