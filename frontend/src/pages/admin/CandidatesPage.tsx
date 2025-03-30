@@ -33,28 +33,39 @@ import type { InputRef } from 'antd';
 import type { ColumnType } from 'antd/es/table';
 import type { FilterConfirmProps } from 'antd/es/table/interface';
 import type { UploadFile } from 'antd/es/upload/interface';
+import { getAllCandidates, updateCandidate, createCandidate, deleteCandidate, removeCandidateFromActivity } from '../../api/vote';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
 
-// 候选人类型定义
+// 候选人类型定义，根据API的返回格式调整
 interface Candidate {
-  id: string;
+  id: number;
   name: string;
-  collegeId: string;
-  collegeName: string;
-  introduction: string;
-  imageUrl: string;
-  voteCount: number;
-  activityId: string;
-  activityName: string;
+  college_id: string;
+  college_name: string;
+  bio: string;
+  photo: string;
+  vote_count: number;
+}
+
+// 编辑/创建候选人时提交的数据格式
+interface CandidateFormData {
+  name: string;
+  college_id: string;
+  photo: string;
+  bio: string;
+  college_name: string;
+  quote?: string;
+  review?: string;
+  video_url?: string;
 }
 
 // 活动类型简化定义
 interface Activity {
-  id: string;
-  name: string;
+  id: number;
+  title: string;
 }
 
 export default function CandidatesPage() {
@@ -70,79 +81,33 @@ export default function CandidatesPage() {
   const [searchedColumn, setSearchedColumn] = useState('');
   const searchInput = useRef<InputRef>(null);
   const [viewModalVisible, setViewModalVisible] = useState(false);
+  const [currentActivityId, setCurrentActivityId] = useState<number | null>(null);
 
-  // 模拟获取数据
-  useEffect(() => {
-    // 模拟API调用
-    setTimeout(() => {
-      const dummyActivities: Activity[] = [
-        { id: '1', name: '2024学生会选举' },
-        { id: '2', name: '优秀教师评选' },
-        { id: '3', name: '最佳班级评选' }
-      ];
-      
-      const dummyCandidates: Candidate[] = [
-        {
-          id: '1',
-          name: '张三',
-          collegeId: 'CS',
-          collegeName: '计算机学院',
-          introduction: '计算机科学与技术专业大三学生，担任班长，多次获得奖学金',
-          imageUrl: 'https://randomuser.me/api/portraits/men/1.jpg',
-          voteCount: 245,
-          activityId: '1',
-          activityName: '2024学生会选举'
-        },
-        {
-          id: '2',
-          name: '李四',
-          collegeId: 'CS',
-          collegeName: '计算机学院',
-          introduction: '软件工程专业大四学生，学生会主席，组织多项校园活动',
-          imageUrl: 'https://randomuser.me/api/portraits/men/2.jpg',
-          voteCount: 189,
-          activityId: '1',
-          activityName: '2024学生会选举'
-        },
-        {
-          id: '3',
-          name: '王五',
-          collegeId: 'BU',
-          collegeName: '商学院',
-          introduction: '金融专业研究生，多次参加商业竞赛并获奖',
-          imageUrl: 'https://randomuser.me/api/portraits/men/3.jpg',
-          voteCount: 156,
-          activityId: '1',
-          activityName: '2024学生会选举'
-        },
-        {
-          id: '4',
-          name: '赵六',
-          collegeId: 'LT',
-          collegeName: '文学院',
-          introduction: '中文系大三学生，校园文学社社长，发表多篇文学作品',
-          imageUrl: 'https://randomuser.me/api/portraits/men/4.jpg',
-          voteCount: 132,
-          activityId: '1',
-          activityName: '2024学生会选举'
-        },
-        {
-          id: '5',
-          name: '钱七',
-          collegeId: 'SC',
-          collegeName: '理学院',
-          introduction: '物理专业大四学生，多次参加科研项目，发表多篇论文',
-          imageUrl: 'https://randomuser.me/api/portraits/men/5.jpg',
-          voteCount: 98,
-          activityId: '1',
-          activityName: '2024学生会选举'
-        }
-      ];
-      
-      setActivities(dummyActivities);
-      setCandidates(dummyCandidates);
+  // 获取候选人数据
+  const fetchCandidates = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllCandidates();
+      setCandidates(data);
       setLoading(false);
-    }, 1000);
+    } catch (error) {
+      console.error('获取候选人失败:', error);
+      message.error('获取候选人列表失败');
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCandidates();
+    
+    // 模拟获取活动数据
+    // 实际项目中应该调用API获取活动列表
+    const dummyActivities: Activity[] = [
+      { id: 1, title: '2024学生会选举' },
+      { id: 2, title: '优秀教师评选' },
+      { id: 3, title: '最佳班级评选' }
+    ];
+    setActivities(dummyActivities);
   }, []);
 
   // 搜索处理函数
@@ -167,7 +132,7 @@ export default function CandidatesPage() {
       <div style={{ padding: 8 }} onKeyDown={(e) => e.stopPropagation()}>
         <Input
           ref={searchInput}
-          placeholder={`搜索${dataIndex === 'name' ? '姓名' : dataIndex === 'collegeName' ? '学院' : ''}`}
+          placeholder={`搜索${dataIndex === 'name' ? '姓名' : dataIndex === 'college_name' ? '学院' : ''}`}
           value={selectedKeys[0]}
           onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
           onPressEnter={() => handleSearch(selectedKeys as string[], confirm, dataIndex)}
@@ -206,8 +171,7 @@ export default function CandidatesPage() {
       <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
     ),
     onFilter: (value, record) =>
-      record[dataIndex]
-        .toString()
+      (record[dataIndex]?.toString() || '')
         .toLowerCase()
         .includes((value as string).toLowerCase()),
     filterDropdownProps: {
@@ -220,7 +184,7 @@ export default function CandidatesPage() {
     render: (text) => 
       searchedColumn === dataIndex ? (
         <span style={{ backgroundColor: '#ffc069', padding: 0 }}>
-          {text.toString().split(new RegExp(`(${searchText})`, 'gi')).map((fragment: string, i: number) => 
+          {(text?.toString() || '').split(new RegExp(`(${searchText})`, 'gi')).map((fragment: string, i: number) => 
             fragment.toLowerCase() === searchText.toLowerCase() ? 
               <span key={i} className="bg-yellow-200">{fragment}</span> : fragment
           )}
@@ -239,43 +203,33 @@ export default function CandidatesPage() {
       ...getColumnSearchProps('name'),
       render: (text, record) => (
         <div className="flex items-center gap-3">
-          <Avatar src={record.imageUrl} size="large" />
+          <Avatar src={record.photo} size="large" />
           <Text strong>{text}</Text>
         </div>
       ),
     },
     {
       title: '所属学院',
-      dataIndex: 'collegeName',
-      key: 'collegeName',
-      ...getColumnSearchProps('collegeName'),
-      filters: Array.from(new Set(candidates.map(c => c.collegeName))).map(collegeName => ({
+      dataIndex: 'college_name',
+      key: 'college_name',
+      ...getColumnSearchProps('college_name'),
+      filters: Array.from(new Set(candidates.map(c => c.college_name))).map(collegeName => ({
         text: collegeName,
         value: collegeName,
       })),
-      onFilter: (value, record) => record.collegeName === value,
+      onFilter: (value, record) => record.college_name === value,
     },
     {
       title: '简介',
-      dataIndex: 'introduction',
-      key: 'introduction',
+      dataIndex: 'bio',
+      key: 'bio',
       ellipsis: true,
     },
     {
-      title: '所属活动',
-      dataIndex: 'activityName',
-      key: 'activityName',
-      filters: Array.from(new Set(candidates.map(c => c.activityName))).map(activityName => ({
-        text: activityName,
-        value: activityName,
-      })),
-      onFilter: (value, record) => record.activityName === value,
-    },
-    {
       title: '获得票数',
-      dataIndex: 'voteCount',
-      key: 'voteCount',
-      sorter: (a, b) => a.voteCount - b.voteCount,
+      dataIndex: 'vote_count',
+      key: 'vote_count',
+      sorter: (a, b) => a.vote_count - b.vote_count,
       render: (votes) => <Tag color="blue">{votes}</Tag>,
     },
     {
@@ -319,16 +273,16 @@ export default function CandidatesPage() {
     setCurrentCandidate(candidate);
     form.setFieldsValue({
       name: candidate.name,
-      collegeId: candidate.collegeId,
-      introduction: candidate.introduction,
-      activityId: candidate.activityId,
+      college_id: candidate.college_id,
+      bio: candidate.bio,
+      college_name: candidate.college_name,
     });
     setFileList([
       {
         uid: '-1',
         name: 'candidate-photo.png',
         status: 'done',
-        url: candidate.imageUrl,
+        url: candidate.photo,
       },
     ]);
     setIsModalVisible(true);
@@ -341,64 +295,67 @@ export default function CandidatesPage() {
   };
 
   // 处理删除候选人
-  const handleDelete = (id: string) => {
-    // 实际项目中应该调用API删除
-    setCandidates(candidates.filter(item => item.id !== id));
-    message.success('候选人已删除');
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteCandidate(id);
+      message.success('候选人已删除');
+      // 刷新候选人列表
+      fetchCandidates();
+    } catch (error) {
+      console.error('删除候选人失败:', error);
+      message.error('删除候选人失败');
+    }
+  };
+
+  // 从活动中移除候选人
+  const handleRemoveFromActivity = async (activityId: number, candidateId: number) => {
+    try {
+      await removeCandidateFromActivity(activityId, candidateId);
+      message.success('已从活动中移除该候选人');
+      // 刷新候选人列表
+      fetchCandidates();
+    } catch (error) {
+      console.error('从活动中移除候选人失败:', error);
+      message.error('从活动中移除候选人失败');
+    }
   };
 
   // 处理表单提交
-  const handleFormSubmit = () => {
-    form.validateFields().then(values => {
-      // 实际项目中应该调用API保存
-      const imageUrl = fileList.length > 0 && fileList[0].url 
-        ? fileList[0].url 
-        : 'https://randomuser.me/api/portraits/lego/1.jpg';
+  const handleFormSubmit = async () => {
+    try {
+      const values = await form.validateFields();
       
-      const activityObj = activities.find(a => a.id === values.activityId);
+      // 准备要提交的数据
+      const candidateData: CandidateFormData = {
+        name: values.name,
+        college_id: values.college_id,
+        college_name: values.college_name,
+        photo: fileList.length > 0 && fileList[0].url 
+          ? fileList[0].url 
+          : 'https://placekitten.com/200/200', // 默认图片
+        bio: values.bio,
+        quote: values.quote,
+        review: values.review,
+        video_url: values.video_url
+      };
       
       if (modalType === 'create') {
-        // 新增候选人
-        const newCandidate: Candidate = {
-          id: `${Math.floor(Math.random() * 1000)}`,
-          name: values.name,
-          collegeId: values.collegeId,
-          collegeName: values.collegeId === 'CS' ? '计算机学院' : 
-                      values.collegeId === 'BU' ? '商学院' : 
-                      values.collegeId === 'LT' ? '文学院' : '理学院',
-          introduction: values.introduction,
-          imageUrl: imageUrl,
-          voteCount: 0,
-          activityId: values.activityId,
-          activityName: activityObj ? activityObj.name : '',
-        };
-        setCandidates([...candidates, newCandidate]);
+        // 创建新候选人
+        await createCandidate(candidateData);
         message.success('候选人创建成功');
-      } else {
-        // 更新候选人
-        if (currentCandidate) {
-          const updatedCandidates = candidates.map(item => 
-            item.id === currentCandidate.id 
-              ? { 
-                  ...item, 
-                  name: values.name, 
-                  collegeId: values.collegeId,
-                  collegeName: values.collegeId === 'CS' ? '计算机学院' : 
-                              values.collegeId === 'BU' ? '商学院' : 
-                              values.collegeId === 'LT' ? '文学院' : '理学院',
-                  introduction: values.introduction,
-                  imageUrl: imageUrl,
-                  activityId: values.activityId,
-                  activityName: activityObj ? activityObj.name : item.activityName,
-                }
-              : item
-          );
-          setCandidates(updatedCandidates);
-          message.success('候选人更新成功');
-        }
+      } else if (currentCandidate) {
+        // 更新现有候选人
+        await updateCandidate(currentCandidate.id, candidateData);
+        message.success('候选人更新成功');
       }
+      
       setIsModalVisible(false);
-    });
+      // 刷新候选人列表
+      fetchCandidates();
+    } catch (error) {
+      console.error('提交表单失败:', error);
+      message.error('操作失败，请检查输入并重试');
+    }
   };
 
   return (
@@ -449,20 +406,23 @@ export default function CandidatesPage() {
           </Form.Item>
           
           <Form.Item
-            name="collegeId"
-            label="所属学院"
-            rules={[{ required: true, message: '请选择所属学院' }]}
+            name="college_id"
+            label="学院ID"
+            rules={[{ required: true, message: '请输入学院ID' }]}
           >
-            <Select placeholder="请选择所属学院">
-              <Option value="CS">计算机学院</Option>
-              <Option value="BU">商学院</Option>
-              <Option value="LT">文学院</Option>
-              <Option value="SC">理学院</Option>
-            </Select>
+            <Input placeholder="请输入学院ID" />
           </Form.Item>
           
           <Form.Item
-            name="introduction"
+            name="college_name"
+            label="学院名称"
+            rules={[{ required: true, message: '请输入学院名称' }]}
+          >
+            <Input placeholder="请输入学院名称" />
+          </Form.Item>
+          
+          <Form.Item
+            name="bio"
             label="个人简介"
             rules={[{ required: true, message: '请输入个人简介' }]}
           >
@@ -470,19 +430,28 @@ export default function CandidatesPage() {
           </Form.Item>
           
           <Form.Item
-            name="activityId"
-            label="所属活动"
-            rules={[{ required: true, message: '请选择所属活动' }]}
+            name="quote"
+            label="个人格言"
           >
-            <Select placeholder="请选择所属活动">
-              {activities.map(activity => (
-                <Option key={activity.id} value={activity.id}>{activity.name}</Option>
-              ))}
-            </Select>
+            <Input placeholder="请输入个人格言" />
           </Form.Item>
           
           <Form.Item
-            name="image"
+            name="review"
+            label="评价"
+          >
+            <TextArea rows={3} placeholder="请输入评价" />
+          </Form.Item>
+          
+          <Form.Item
+            name="video_url"
+            label="视频链接"
+          >
+            <Input placeholder="请输入视频链接" />
+          </Form.Item>
+          
+          <Form.Item
+            name="photo"
             label="照片"
           >
             <Upload
@@ -516,11 +485,11 @@ export default function CandidatesPage() {
             <Row gutter={24}>
               <Col span={8}>
                 <div className="flex justify-center">
-                  <Avatar src={currentCandidate.imageUrl} size={120} />
+                  <Avatar src={currentCandidate.photo} size={120} />
                 </div>
                 <div className="text-center mt-4">
                   <Tag icon={<TeamOutlined />} color="blue">
-                    {currentCandidate.collegeName}
+                    {currentCandidate.college_name}
                   </Tag>
                 </div>
               </Col>
@@ -528,17 +497,29 @@ export default function CandidatesPage() {
                 <Title level={3}>{currentCandidate.name}</Title>
                 <Divider />
                 <div className="mb-4">
-                  <Text strong>所属活动：</Text>
-                  <Text>{currentCandidate.activityName}</Text>
+                  <Text strong>学院ID：</Text>
+                  <Text>{currentCandidate.college_id}</Text>
                 </div>
                 <div className="mb-4">
                   <Text strong>当前票数：</Text>
-                  <Tag color="blue">{currentCandidate.voteCount}</Tag>
+                  <Tag color="blue">{currentCandidate.vote_count}</Tag>
                 </div>
                 <div className="mb-4">
                   <Text strong>个人简介：</Text>
-                  <Paragraph>{currentCandidate.introduction}</Paragraph>
+                  <Paragraph>{currentCandidate.bio}</Paragraph>
                 </div>
+                {currentActivityId && (
+                  <div className="mt-4">
+                    <Popconfirm
+                      title="确定要从该活动中移除此候选人吗？"
+                      onConfirm={() => handleRemoveFromActivity(currentActivityId, currentCandidate.id)}
+                      okText="确定"
+                      cancelText="取消"
+                    >
+                      <Button danger>从活动中移除</Button>
+                    </Popconfirm>
+                  </div>
+                )}
               </Col>
             </Row>
           </div>
