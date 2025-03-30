@@ -35,6 +35,7 @@ import type { ColumnType } from 'antd/es/table';
 import type { FilterConfirmProps } from 'antd/es/table/interface';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { getAllCandidates, updateCandidate, createCandidate, deleteCandidate, removeCandidateFromActivity, getAllActivities } from '../../api/vote';
+import { getAllCollegeInfo, CollegeInfo, getCollegeNameById } from '../../api/college';
 import { Activity } from '../../types/activity';
 
 const { Title, Text, Paragraph } = Typography;
@@ -68,6 +69,7 @@ interface CandidateFormData {
 export default function CandidatesPage() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [collegeInfoList, setCollegeInfoList] = useState<CollegeInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalType, setModalType] = useState<'create' | 'edit'>('create');
@@ -80,11 +82,10 @@ export default function CandidatesPage() {
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [currentActivityId, setCurrentActivityId] = useState<number | null>(null);
 
-  // 获取候选人数据
+  // 获取候选人数据并更新学院名称
   const fetchCandidates = async () => {
     try {
       const data = await getAllCandidates();
-      setCandidates(data);
       return data;
     } catch (error) {
       console.error('获取候选人失败:', error);
@@ -106,6 +107,19 @@ export default function CandidatesPage() {
     }
   };
 
+  // 获取学院信息
+  const fetchCollegeInfo = async () => {
+    try {
+      const data = await getAllCollegeInfo();
+      setCollegeInfoList(data);
+      return data;
+    } catch (error) {
+      console.error('获取学院信息失败:', error);
+      message.error('获取学院信息失败');
+      return [];
+    }
+  };
+
   // 为候选人关联活动信息
   const mapCandidatesToActivities = () => {
     if (candidates.length === 0 || activities.length === 0) return;
@@ -123,18 +137,32 @@ export default function CandidatesPage() {
     setCandidates(updatedCandidates);
   };
 
+  // 根据college_id更新所有候选人的college_name
+  const updateCandidatesCollegeName = (candidates: Candidate[], collegeList: CollegeInfo[]) => {
+    if (!collegeList.length) return candidates;
+    
+    return candidates.map(candidate => ({
+      ...candidate,
+      college_name: getCollegeNameById(collegeList, candidate.college_id)
+    }));
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [candidatesData, activitiesData] = await Promise.all([
+        const [candidatesData, activitiesData, collegeData] = await Promise.all([
           fetchCandidates(),
-          fetchActivities()
+          fetchActivities(),
+          fetchCollegeInfo()
         ]);
         
+        // 根据college_id更新college_name
+        const updatedWithCollegeNames = updateCandidatesCollegeName(candidatesData, collegeData);
+        
         // 初始数据加载时手动关联活动
-        if (candidatesData.length > 0 && activitiesData.length > 0) {
-          const updatedCandidates = candidatesData.map((candidate: Candidate) => {
+        if (updatedWithCollegeNames.length > 0 && activitiesData.length > 0) {
+          const updatedCandidates = updatedWithCollegeNames.map((candidate: Candidate) => {
             const relatedActivities = activitiesData.filter((activity: Activity) => 
               activity.candidate_ids.includes(candidate.id)
             );
@@ -144,6 +172,8 @@ export default function CandidatesPage() {
             };
           });
           setCandidates(updatedCandidates);
+        } else {
+          setCandidates(updatedWithCollegeNames);
         }
       } catch (error) {
         console.error('获取数据失败:', error);
@@ -186,9 +216,12 @@ export default function CandidatesPage() {
         fetchActivities()
       ]);
       
+      // 更新学院名称
+      const updatedWithCollegeNames = updateCandidatesCollegeName(candidatesData, collegeInfoList);
+      
       // 手动关联数据而不是依赖useEffect
-      if (candidatesData.length > 0 && activitiesData.length > 0) {
-        const updatedCandidates = candidatesData.map((candidate: Candidate) => {
+      if (updatedWithCollegeNames.length > 0 && activitiesData.length > 0) {
+        const updatedCandidates = updatedWithCollegeNames.map((candidate: Candidate) => {
           const relatedActivities = activitiesData.filter((activity: Activity) => 
             activity.candidate_ids.includes(candidate.id)
           );
@@ -198,6 +231,8 @@ export default function CandidatesPage() {
           };
         });
         setCandidates(updatedCandidates);
+      } else {
+        setCandidates(updatedWithCollegeNames);
       }
     } catch (error) {
       console.error('刷新数据失败:', error);
@@ -266,10 +301,17 @@ export default function CandidatesPage() {
     filterIcon: (filtered: boolean) => (
       <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
     ),
-    onFilter: (value, record) =>
-      (record[dataIndex]?.toString() || '')
+    onFilter: (value, record) => {
+      if (dataIndex === 'college_name') {
+        // 使用college_id获取学院名称并搜索
+        const collegeName = getCollegeNameById(collegeInfoList, record.college_id);
+        return collegeName.toLowerCase().includes((value as string).toLowerCase());
+      }
+      // 其他字段正常搜索
+      return (record[dataIndex]?.toString() || '')
         .toLowerCase()
-        .includes((value as string).toLowerCase()),
+        .includes((value as string).toLowerCase());
+    },
     filterDropdownProps: {
       onOpenChange: (visible) => {
         if (visible) {
@@ -277,8 +319,13 @@ export default function CandidatesPage() {
         }
       }
     },
-    render: (text) => 
-      searchedColumn === dataIndex ? (
+    render: (text, record) => {
+      if (dataIndex === 'college_name') {
+        // 显示college_name时使用getCollegeNameById函数获取
+        text = getCollegeNameById(collegeInfoList, record.college_id);
+      }
+      
+      return searchedColumn === dataIndex ? (
         <span style={{ backgroundColor: '#ffc069', padding: 0 }}>
           {(text?.toString() || '').split(new RegExp(`(${searchText})`, 'gi')).map((fragment: string, i: number) => 
             fragment.toLowerCase() === searchText.toLowerCase() ? 
@@ -287,7 +334,8 @@ export default function CandidatesPage() {
         </span>
       ) : (
         text
-      ),
+      );
+    },
   });
 
   // 表格列定义
@@ -306,14 +354,15 @@ export default function CandidatesPage() {
     },
     {
       title: '所属学院',
-      dataIndex: 'college_name',
+      dataIndex: 'college_id',
       key: 'college_name',
       ...getColumnSearchProps('college_name'),
-      filters: Array.from(new Set(candidates.map(c => c.college_name))).map(collegeName => ({
+      render: (collegeId, record) => getCollegeNameById(collegeInfoList, collegeId),
+      filters: Array.from(new Set(collegeInfoList.map(c => c.YXDM_TEXT))).map(collegeName => ({
         text: collegeName,
         value: collegeName,
       })),
-      onFilter: (value, record) => record.college_name === value,
+      onFilter: (value, record) => getCollegeNameById(collegeInfoList, record.college_id) === value,
     },
     {
       title: '简介',
@@ -393,7 +442,7 @@ export default function CandidatesPage() {
       name: candidate.name,
       college_id: candidate.college_id,
       bio: candidate.bio,
-      college_name: candidate.college_name,
+      college_name: getCollegeNameById(collegeInfoList, candidate.college_id),
     });
     setFileList([
       {
@@ -447,11 +496,17 @@ export default function CandidatesPage() {
     try {
       const values = await form.validateFields();
       
+      // 从学院信息接口获取学院名称
+      let collegeName = '';
+      if (values.college_id && collegeInfoList.length > 0) {
+        collegeName = getCollegeNameById(collegeInfoList, values.college_id);
+      }
+      
       // 准备要提交的数据
       const candidateData: CandidateFormData = {
         name: values.name,
         college_id: values.college_id,
-        college_name: values.college_name,
+        college_name: collegeName,
         photo: fileList.length > 0 && fileList[0].url 
           ? fileList[0].url 
           : 'https://placekitten.com/200/200', // 默认图片
@@ -477,6 +532,14 @@ export default function CandidatesPage() {
     } catch (error) {
       console.error('提交表单失败:', error);
       message.error('操作失败，请检查输入并重试');
+    }
+  };
+
+  // 处理学院选择
+  const handleCollegeChange = (value: string) => {
+    if (collegeInfoList.length > 0) {
+      const collegeName = getCollegeNameById(collegeInfoList, value);
+      form.setFieldsValue({ college_name: collegeName });
     }
   };
 
@@ -534,18 +597,27 @@ export default function CandidatesPage() {
           
           <Form.Item
             name="college_id"
-            label="学院ID"
-            rules={[{ required: true, message: '请输入学院ID' }]}
+            label="所属学院"
+            rules={[{ required: true, message: '请选择所属学院' }]}
           >
-            <Input placeholder="请输入学院ID" />
+            <Select 
+              placeholder="请选择所属学院"
+              onChange={handleCollegeChange}
+              showSearch
+              optionFilterProp="children"
+            >
+              {collegeInfoList.map(college => (
+                <Option key={college.YXDM} value={college.YXDM}>{college.YXDM_TEXT}</Option>
+              ))}
+            </Select>
           </Form.Item>
           
           <Form.Item
             name="college_name"
             label="学院名称"
-            rules={[{ required: true, message: '请输入学院名称' }]}
+            hidden
           >
-            <Input placeholder="请输入学院名称" />
+            <Input disabled />
           </Form.Item>
           
           <Form.Item
@@ -616,7 +688,7 @@ export default function CandidatesPage() {
                 </div>
                 <div className="text-center mt-4">
                   <Tag icon={<TeamOutlined />} color="blue">
-                    {currentCandidate.college_name}
+                    {getCollegeNameById(collegeInfoList, currentCandidate.college_id)}
                   </Tag>
                 </div>
               </Col>

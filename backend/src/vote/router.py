@@ -1,6 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from sqlalchemy.orm import Session
 from typing import List
+import httpx
+import json
+import os
+from fastapi.responses import JSONResponse
 
 from .schemas import CandidateCreate, CandidateResponse, VoteRecord, ActivityCreate, ActivityResponse, ActiveVoteStatistics, VoteTrendResponse
 from .service import VoteService
@@ -193,3 +197,57 @@ def remove_candidate_from_activity(
         return {"message": "候选人已从活动中移除"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/colleges/")
+async def get_college_info():
+    """学院信息代理接口，用于解决跨域问题"""
+    # 备用学院信息数据
+    fallback_data = [
+        {"YXDM":"0519000","YXDM_TEXT":"国际教育学院"},
+        {"YXDM":"0501000","YXDM_TEXT":"航空学院"},
+        {"YXDM":"0502000","YXDM_TEXT":"能源与动力学院"},
+        {"YXDM":"0503000","YXDM_TEXT":"自动化学院"},
+        {"YXDM":"0504000","YXDM_TEXT":"电子信息工程学院"},
+        {"YXDM":"0505000","YXDM_TEXT":"机电学院"},
+        {"YXDM":"0506000","YXDM_TEXT":"材料科学与技术学院"},
+        {"YXDM":"0509000","YXDM_TEXT":"经济与管理学院"},
+        {"YXDM":"0515000","YXDM_TEXT":"航天学院"},
+        {"YXDM":"0516000","YXDM_TEXT":"计算机科学与技术学院/软件学院"},
+        {"YXDM":"0507000","YXDM_TEXT":"民航学院"},
+        {"YXDM":"0525000","YXDM_TEXT":"集成电路学院"},
+        {"YXDM":"0517000","YXDM_TEXT":"马克思主义学院"},
+        {"YXDM":"0522000","YXDM_TEXT":"数学学院"},
+        {"YXDM":"0523000","YXDM_TEXT":"物理学院"},
+        {"YXDM":"0510000","YXDM_TEXT":"人文与社会科学学院"},
+        {"YXDM":"0511000","YXDM_TEXT":"艺术学院"},
+        {"YXDM":"0520000","YXDM_TEXT":"通用航空与飞行学院"},
+        {"YXDM":"0512000","YXDM_TEXT":"外国语学院"},
+        {"YXDM":"0218000","YXDM_TEXT":"教师发展与教学评估中心/高等教育研究所"},
+        {"YXDM":"0526000","YXDM_TEXT":"人工智能学院"}
+    ]
+    
+    # 保存学院数据的本地文件路径
+    cache_file = os.path.join(os.path.dirname(__file__), 'college_cache.json')
+    
+    try:
+        # 优先使用缓存
+        if os.path.exists(cache_file):
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+                
+        # 如果没有缓存，尝试从原站获取
+        async with httpx.AsyncClient() as client:
+            response = await client.get('https://class101.nuaa.edu.cn/yx_info/', timeout=5.0)
+            if response.status_code == 200:
+                college_data = response.json()
+                # 缓存获取的数据
+                with open(cache_file, 'w', encoding='utf-8') as f:
+                    json.dump(college_data, f, ensure_ascii=False)
+                return college_data
+            else:
+                # 原站获取失败，使用备用数据
+                return fallback_data
+    except Exception as e:
+        print(f"获取学院信息错误: {e}")
+        # 请求失败时使用备用数据
+        return fallback_data

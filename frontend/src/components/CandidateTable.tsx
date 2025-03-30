@@ -5,7 +5,8 @@ import { Candidate } from '../types/candidate';
 import { Activity } from '../types/activity';
 import { BASE64_PLACEHOLDER } from '../constants/images'
 import { useActivity } from '../contexts/ActivityContext';
-import {getActivityVotes } from "../api/vote"
+import { getActivityVotes } from "../api/vote"
+import { getAllCollegeInfo, CollegeInfo, getCollegeNameById } from '../api/college';
 
 type CandidateTableProps = {
   candidates: Candidate[];
@@ -20,6 +21,19 @@ export function CandidateTable({
   const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([]);
   const [hasVoted, setHasVoted] = useState(false);
   const [votedCandidates, setVotedCandidates] = useState<number[]>([]);
+  const [collegeInfoList, setCollegeInfoList] = useState<CollegeInfo[]>([]);
+
+  useEffect(() => {
+    const fetchCollegeInfo = async () => {
+      try {
+        const data = await getAllCollegeInfo();
+        setCollegeInfoList(data);
+      } catch (error) {
+        console.error('获取学院信息失败:', error);
+      }
+    };
+    fetchCollegeInfo();
+  }, []);
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -46,9 +60,10 @@ export function CandidateTable({
         Table.EXPAND_COLUMN,
         {
           title: '学院',
-          dataIndex: 'college_name',
+          dataIndex: 'college_id',
           key: 'college',
-          className: 'px-2 md:px-4'
+          className: 'px-2 md:px-4',
+          render: (collegeId, record) => getCollegeNameById(collegeInfoList, collegeId)
         },
         {
           title: '姓名',

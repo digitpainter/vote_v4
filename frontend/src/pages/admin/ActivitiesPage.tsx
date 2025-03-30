@@ -41,6 +41,7 @@ import {
   deleteActivity,
   getAllCandidates 
 } from '../../api/vote';
+import { getAllCollegeInfo, CollegeInfo, getCollegeNameById } from '../../api/college';
 import { Activity, ApiActivity, ActivityFormData, Candidate } from '../../types/activity';
 import dayjs from 'dayjs';
 import type { TransferDirection } from 'antd/es/transfer';
@@ -71,6 +72,7 @@ export default function ActivitiesPage() {
   const searchInput = useRef<InputRef>(null);
   const [targetKeys, setTargetKeys] = useState<string[]>([]);
   const [selectedActivity, setSelectedActivity] = useState<ApiActivity | null>(null);
+  const [collegeInfoList, setCollegeInfoList] = useState<CollegeInfo[]>([]);
 
   // 加载活动数据
   const fetchActivities = async () => {
@@ -97,10 +99,22 @@ export default function ActivitiesPage() {
     }
   };
 
+  // 加载学院信息
+  const fetchCollegeInfo = async () => {
+    try {
+      const data = await getAllCollegeInfo();
+      setCollegeInfoList(data);
+    } catch (error) {
+      console.error('获取学院信息失败:', error);
+      message.error('获取学院信息失败');
+    }
+  };
+
   // 初始加载数据
   useEffect(() => {
     fetchActivities();
     fetchCandidates();
+    fetchCollegeInfo();
   }, []);
 
   // 搜索处理函数
@@ -556,7 +570,7 @@ export default function ActivitiesPage() {
             >
               {candidates.map(candidate => (
                 <Option key={candidate.id} value={candidate.id}>
-                  {candidate.name} - {candidate.college_name}
+                  {candidate.name} - {getCollegeNameById(collegeInfoList, candidate.college_id)}
                 </Option>
               ))}
             </Select>
@@ -587,7 +601,7 @@ export default function ActivitiesPage() {
           dataSource={candidates.map(c => ({
             key: c.id.toString(),
             title: c.name,
-            description: c.college_name || '',
+            description: getCollegeNameById(collegeInfoList, c.college_id) || '',
             disabled: false,
           }))}
           titles={['可选候选人', '已选候选人']}

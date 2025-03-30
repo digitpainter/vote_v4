@@ -2,12 +2,29 @@ import { Activity } from '../types/activity';
 import { Candidate } from '../types/candidate';
 import { Card, Row, Col, Image, Typography } from 'antd';
 import { BASE64_PLACEHOLDER } from '../constants/images'
+import { useState, useEffect } from 'react';
+import { getAllCollegeInfo, CollegeInfo, getCollegeNameById } from '../api/college';
+
 type CandidateGridProps = {
   activity: Activity;
   candidates: Candidate[];
 };
 
 export function CandidateGrid({ activity, candidates }: CandidateGridProps) {
+  const [collegeInfoList, setCollegeInfoList] = useState<CollegeInfo[]>([]);
+
+  useEffect(() => {
+    const fetchCollegeInfo = async () => {
+      try {
+        const data = await getAllCollegeInfo();
+        setCollegeInfoList(data);
+      } catch (error) {
+        console.error('获取学院信息失败:', error);
+      }
+    };
+    fetchCollegeInfo();
+  }, []);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 gap-y-4">
       {candidates
@@ -33,7 +50,7 @@ export function CandidateGrid({ activity, candidates }: CandidateGridProps) {
                     {candidate.name}
                   </Typography.Title>
                   <Typography.Text type="secondary" className="text-base mb-2">
-                    学院：{candidate.college_name}
+                    学院：{getCollegeNameById(collegeInfoList, candidate.college_id)}
                   </Typography.Text>
                   <Typography.Paragraph
                     ellipsis={{rows: 3, expandable: true}}
