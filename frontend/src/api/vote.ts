@@ -83,7 +83,7 @@ export async function getVoteTrends(): Promise<VoteTrendData> {
       credentials: 'include',
       mode: 'cors'
     });
-
+    console.info("getVoteTrends", response)
     if (!response.ok) {
       const message = handleApiError(response.status, await response.json());
       throw new Error('Failed to get vote trends data: ' + message);
