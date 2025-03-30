@@ -125,6 +125,137 @@ export async function getAllCandidates() {
   }
 }
 
+// 获取特定候选人
+export async function getCandidatesByIds(candidateIds: number[]) {
+  try {
+    const url = new URL('http://localhost:8000/vote/candidates/batch');
+    candidateIds.forEach(id => url.searchParams.append('candidate_ids', id.toString()));
+
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+      credentials: 'include',
+      mode: 'cors'
+    });
+
+    if (!response.ok) {
+      const message = handleApiError(response.status, await response.json());
+      throw new Error('获取候选人详情失败: ' + message);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('[API Error] 获取候选人详情错误:', error);
+    throw error;
+  }
+}
+
+// 更新候选人信息
+export async function updateCandidate(candidateId: number, candidateData: any) {
+  try {
+    const response = await fetch(`http://localhost:8000/vote/candidates/${candidateId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: JSON.stringify(candidateData),
+      credentials: 'include',
+      mode: 'cors'
+    });
+
+    if (!response.ok) {
+      const message = handleApiError(response.status, await response.json());
+      throw new Error('更新候选人失败: ' + message);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('[API Error] 更新候选人错误:', error);
+    throw error;
+  }
+}
+
+// 上传候选人图片
+export async function uploadCandidateImage(candidateId: number, imageFile: File) {
+  try {
+    const formData = new FormData();
+    formData.append('file', imageFile);
+    
+    const response = await fetch(`http://localhost:8000/vote/candidates/${candidateId}/upload-image`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: formData,
+      credentials: 'include',
+      mode: 'cors'
+    });
+
+    if (!response.ok) {
+      const message = handleApiError(response.status, await response.json());
+      throw new Error('上传图片失败: ' + message);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('[API Error] 上传图片错误:', error);
+    throw error;
+  }
+}
+
+// 创建候选人
+export async function createCandidate(candidateData: any) {
+  try {
+    const response = await fetch('http://localhost:8000/vote/candidates/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: JSON.stringify(candidateData),
+      credentials: 'include',
+      mode: 'cors'
+    });
+
+    if (!response.ok) {
+      const message = handleApiError(response.status, await response.json());
+      throw new Error('创建候选人失败: ' + message);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('[API Error] 创建候选人错误:', error);
+    throw error;
+  }
+}
+
+// 删除候选人
+export async function deleteCandidate(candidateId: number) {
+  try {
+    const response = await fetch(`http://localhost:8000/vote/candidates/${candidateId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+      credentials: 'include',
+      mode: 'cors'
+    });
+
+    if (!response.ok) {
+      const message = handleApiError(response.status, await response.json());
+      throw new Error('删除候选人失败: ' + message);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('[API Error] 删除候选人错误:', error);
+    throw error;
+  }
+}
+
 export async function submitVotes(activityId: Activity['id'], candidateIds: string[]) {
   try {
 
@@ -215,6 +346,30 @@ export async function getVoteTrends(): Promise<VoteTrendData> {
     return await response.json();
   } catch (error) {
     console.error('[API Error] Get vote trends error:', error);
+    throw error;
+  }
+}
+
+// 从活动中移除候选人
+export async function removeCandidateFromActivity(activityId: number, candidateId: number) {
+  try {
+    const response = await fetch(`http://localhost:8000/vote/activities/${activityId}/candidates/${candidateId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+      credentials: 'include',
+      mode: 'cors'
+    });
+
+    if (!response.ok) {
+      const message = handleApiError(response.status, await response.json());
+      throw new Error('从活动中移除候选人失败: ' + message);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('[API Error] 从活动中移除候选人错误:', error);
     throw error;
   }
 }

@@ -141,13 +141,13 @@ def update_candidate(candidate_id: int, user: CandidateCreate, db: Session = Dep
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-# @router.delete("/candidates/{candidate_id}")
-# def delete_candidate(candidate_id: int, db: Session = Depends(get_db), _= check_roles(allowed_admin_types=["school"])):
-#     try:
-#         VoteService.delete_candidate(db, candidate_id)
-#         return {"message": "Candidate deleted successfully"}
-#     except ValueError as e:
-#         raise HTTPException(status_code=400, detail=str(e))
+@router.delete("/candidates/{candidate_id}")
+def delete_candidate(candidate_id: int, db: Session = Depends(get_db), _= check_roles(allowed_admin_types=["school"])):
+    try:
+        VoteService.delete_candidate(db, candidate_id)
+        return {"message": "Candidate deleted successfully"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/activities/{activity_id}/my-votes", response_model=List[int])
@@ -179,3 +179,52 @@ def get_my_activity_votes(
 def get_vote_trends(db: Session = Depends(get_db)):
     """获取投票趋势数据，包括每日投票总数和各候选人投票数"""
     return VoteService.get_vote_trends(db)
+
+@router.delete("/activities/{activity_id}/candidates/{candidate_id}")
+def remove_candidate_from_activity(
+    activity_id: int, 
+    candidate_id: int, 
+    db: Session = Depends(get_db),
+    _= check_roles(allowed_admin_types=["school"])
+):
+    """从活动中移除候选人，解除候选人与活动的关联"""
+    try:
+        VoteService.remove_candidate_from_activity(db, activity_id, candidate_id)
+        return {"message": "候选人已从活动中移除"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/candidates/{candidate_id}/upload-image", response_model=dict)
+def upload_candidate_image(
+    candidate_id: int, 
+    file: UploadFile = File(...), 
+    db: Session = Depends(get_db),
+    _= check_roles(allowed_admin_types=["school"])
+):
+    """上传候选人图片"""
+    try:
+        # 检查文件类型
+        if file.content_type not in ["image/jpeg", "image/png"]:
+            raise HTTPException(400, "只支持JPG和PNG格式图片")
+        
+        # 生成唯一文件名
+        ext = file.filename.split(".")[-1]
+        filename = f"{uuid4()}.{ext}"
+        
+        # 确保上传目录存在
+        upload_dir = "static/uploads/candidates"
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        file_path = f"{upload_dir}/{filename}"
+        
+        # 保存文件
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # 更新数据库中候选人的图片路径
+        image_url = f"/static/uploads/candidates/{filename}"
+        VoteService.update_candidate_image(db, candidate_id, image_url)
+        
+        return {"image_url": image_url}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

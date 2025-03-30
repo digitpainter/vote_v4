@@ -290,15 +290,46 @@ class VoteService:
         db_candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
         if not db_candidate:
             raise ValueError("Candidate not found")
-
         try:
-            db.query(Vote).filter(Vote.candidate_id == candidate_id).delete()
             db.delete(db_candidate)
             db.commit()
+        except Exception as e:
+            db.rollback()
+            VoteService.logger.error(f"Error deleting candidate: {str(e)}")
+            raise ValueError(f"无法删除候选人: {str(e)}")
+
+    @staticmethod
+    def remove_candidate_from_activity(db: Session, activity_id: int, candidate_id: int):
+        """从活动中移除候选人"""
+        # 检查活动是否存在
+        activity = db.query(VoteActivity).filter(VoteActivity.id == activity_id).first()
+        if not activity:
+            raise ValueError("活动不存在")
+        
+        # 检查候选人是否存在
+        candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+        if not candidate:
+            raise ValueError("候选人不存在")
+        
+        # 检查关联是否存在
+        association = db.query(ActivityCandidateAssociation).filter(
+            ActivityCandidateAssociation.activity_id == activity_id,
+            ActivityCandidateAssociation.candidate_id == candidate_id
+        ).first()
+        
+        if not association:
+            raise ValueError("该候选人未与此活动关联")
+        
+        try:
+            # 删除关联
+            db.delete(association)
+            db.commit()
+            VoteService.logger.info(f"已从活动 {activity_id} 中移除候选人 {candidate_id}")
             return True
         except Exception as e:
             db.rollback()
-            raise ValueError(str(e))
+            VoteService.logger.error(f"移除候选人错误: {str(e)}")
+            raise ValueError(f"移除候选人失败: {str(e)}")
 
     @staticmethod
     def create_bulk_votes(db: Session, candidate_ids: List[int], voter_id: str, activity_id: int):
