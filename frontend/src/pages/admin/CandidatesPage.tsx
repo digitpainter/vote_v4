@@ -26,14 +26,16 @@ import {
   UploadOutlined, 
   TeamOutlined,
   SearchOutlined,
-  EyeOutlined
+  EyeOutlined,
+  CalendarOutlined
 } from '@ant-design/icons';
 import type { TableColumnsType } from 'antd';
 import type { InputRef } from 'antd';
 import type { ColumnType } from 'antd/es/table';
 import type { FilterConfirmProps } from 'antd/es/table/interface';
 import type { UploadFile } from 'antd/es/upload/interface';
-import { getAllCandidates, updateCandidate, createCandidate, deleteCandidate, removeCandidateFromActivity } from '../../api/vote';
+import { getAllCandidates, updateCandidate, createCandidate, deleteCandidate, removeCandidateFromActivity, getAllActivities } from '../../api/vote';
+import { Activity } from '../../types/activity';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -48,6 +50,7 @@ interface Candidate {
   bio: string;
   photo: string;
   vote_count: number;
+  activities?: Activity[]; // 添加关联活动字段
 }
 
 // 编辑/创建候选人时提交的数据格式
@@ -60,12 +63,6 @@ interface CandidateFormData {
   quote?: string;
   review?: string;
   video_url?: string;
-}
-
-// 活动类型简化定义
-interface Activity {
-  id: number;
-  title: string;
 }
 
 export default function CandidatesPage() {
@@ -86,29 +83,128 @@ export default function CandidatesPage() {
   // 获取候选人数据
   const fetchCandidates = async () => {
     try {
-      setLoading(true);
       const data = await getAllCandidates();
       setCandidates(data);
-      setLoading(false);
+      return data;
     } catch (error) {
       console.error('获取候选人失败:', error);
       message.error('获取候选人列表失败');
-      setLoading(false);
+      return [];
     }
   };
 
+  // 获取活动数据
+  const fetchActivities = async () => {
+    try {
+      const data = await getAllActivities();
+      setActivities(data);
+      return data;
+    } catch (error) {
+      console.error('获取活动失败:', error);
+      message.error('获取活动列表失败');
+      return [];
+    }
+  };
+
+  // 为候选人关联活动信息
+  const mapCandidatesToActivities = () => {
+    if (candidates.length === 0 || activities.length === 0) return;
+
+    const updatedCandidates = candidates.map(candidate => {
+      const relatedActivities = activities.filter(activity => 
+        activity.candidate_ids.includes(candidate.id)
+      );
+      return {
+        ...candidate,
+        activities: relatedActivities
+      };
+    });
+
+    setCandidates(updatedCandidates);
+  };
+
   useEffect(() => {
-    fetchCandidates();
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [candidatesData, activitiesData] = await Promise.all([
+          fetchCandidates(),
+          fetchActivities()
+        ]);
+        
+        // 初始数据加载时手动关联活动
+        if (candidatesData.length > 0 && activitiesData.length > 0) {
+          const updatedCandidates = candidatesData.map((candidate: Candidate) => {
+            const relatedActivities = activitiesData.filter((activity: Activity) => 
+              activity.candidate_ids.includes(candidate.id)
+            );
+            return {
+              ...candidate,
+              activities: relatedActivities
+            };
+          });
+          setCandidates(updatedCandidates);
+        }
+      } catch (error) {
+        console.error('获取数据失败:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    // 模拟获取活动数据
-    // 实际项目中应该调用API获取活动列表
-    const dummyActivities: Activity[] = [
-      { id: 1, title: '2024学生会选举' },
-      { id: 2, title: '优秀教师评选' },
-      { id: 3, title: '最佳班级评选' }
-    ];
-    setActivities(dummyActivities);
+    fetchData();
   }, []);
+
+  // 仅在活动数据变化时重新关联
+  useEffect(() => {
+    if (activities.length > 0 && candidates.length > 0) {
+      const candidateIds = candidates.map(c => c.id);
+      const updatedCandidates = [...candidates];
+      
+      // 只更新现有候选人的活动关联，不创建新的候选人对象
+      for (let i = 0; i < updatedCandidates.length; i++) {
+        const candidate = updatedCandidates[i];
+        const relatedActivities = activities.filter(activity => 
+          activity.candidate_ids.includes(candidate.id)
+        );
+        updatedCandidates[i] = {
+          ...candidate,
+          activities: relatedActivities
+        };
+      }
+      
+      setCandidates(updatedCandidates);
+    }
+  }, [activities]);
+
+  // 刷新数据
+  const refreshData = async () => {
+    setLoading(true);
+    try {
+      const [candidatesData, activitiesData] = await Promise.all([
+        fetchCandidates(),
+        fetchActivities()
+      ]);
+      
+      // 手动关联数据而不是依赖useEffect
+      if (candidatesData.length > 0 && activitiesData.length > 0) {
+        const updatedCandidates = candidatesData.map((candidate: Candidate) => {
+          const relatedActivities = activitiesData.filter((activity: Activity) => 
+            activity.candidate_ids.includes(candidate.id)
+          );
+          return {
+            ...candidate,
+            activities: relatedActivities
+          };
+        });
+        setCandidates(updatedCandidates);
+      }
+    } catch (error) {
+      console.error('刷新数据失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // 搜索处理函数
   const handleSearch = (
@@ -226,6 +322,28 @@ export default function CandidatesPage() {
       ellipsis: true,
     },
     {
+      title: '参与活动',
+      key: 'activities',
+      render: (_, record) => (
+        <Space direction="vertical" size="small" style={{ width: '100%' }}>
+          {record.activities && record.activities.length > 0 ? (
+            record.activities.map(activity => (
+              <Tag 
+                key={activity.id} 
+                color="green"
+                icon={<CalendarOutlined />}
+                style={{ margin: '2px 0' }}
+              >
+                {activity.title}
+              </Tag>
+            ))
+          ) : (
+            <Text type="secondary">未参与任何活动</Text>
+          )}
+        </Space>
+      ),
+    },
+    {
       title: '获得票数',
       dataIndex: 'vote_count',
       key: 'vote_count',
@@ -291,6 +409,9 @@ export default function CandidatesPage() {
   // 处理查看候选人详情
   const handleView = (candidate: Candidate) => {
     setCurrentCandidate(candidate);
+    if (candidate.activities && candidate.activities.length > 0) {
+      setCurrentActivityId(candidate.activities[0].id);
+    }
     setViewModalVisible(true);
   };
 
@@ -299,8 +420,8 @@ export default function CandidatesPage() {
     try {
       await deleteCandidate(id);
       message.success('候选人已删除');
-      // 刷新候选人列表
-      fetchCandidates();
+      // 刷新候选人列表和活动关联
+      refreshData();
     } catch (error) {
       console.error('删除候选人失败:', error);
       message.error('删除候选人失败');
@@ -312,8 +433,9 @@ export default function CandidatesPage() {
     try {
       await removeCandidateFromActivity(activityId, candidateId);
       message.success('已从活动中移除该候选人');
-      // 刷新候选人列表
-      fetchCandidates();
+      // 刷新活动和候选人数据
+      refreshData();
+      setViewModalVisible(false);
     } catch (error) {
       console.error('从活动中移除候选人失败:', error);
       message.error('从活动中移除候选人失败');
@@ -350,12 +472,17 @@ export default function CandidatesPage() {
       }
       
       setIsModalVisible(false);
-      // 刷新候选人列表
-      fetchCandidates();
+      // 刷新候选人列表和活动关联
+      refreshData();
     } catch (error) {
       console.error('提交表单失败:', error);
       message.error('操作失败，请检查输入并重试');
     }
+  };
+
+  // 处理活动选择变更
+  const handleActivityChange = (activityId: number) => {
+    setCurrentActivityId(activityId);
   };
 
   return (
@@ -508,18 +635,55 @@ export default function CandidatesPage() {
                   <Text strong>个人简介：</Text>
                   <Paragraph>{currentCandidate.bio}</Paragraph>
                 </div>
-                {currentActivityId && (
-                  <div className="mt-4">
-                    <Popconfirm
-                      title="确定要从该活动中移除此候选人吗？"
-                      onConfirm={() => handleRemoveFromActivity(currentActivityId, currentCandidate.id)}
-                      okText="确定"
-                      cancelText="取消"
-                    >
-                      <Button danger>从活动中移除</Button>
-                    </Popconfirm>
-                  </div>
-                )}
+                
+                {/* 关联活动部分 */}
+                <div className="mb-4">
+                  <Text strong>参与的活动：</Text>
+                  {currentCandidate.activities && currentCandidate.activities.length > 0 ? (
+                    <div className="mt-2">
+                      <Space direction="vertical" style={{ width: '100%' }}>
+                        {currentCandidate.activities.map(activity => (
+                          <Card 
+                            key={activity.id} 
+                            size="small" 
+                            title={
+                              <Space>
+                                <CalendarOutlined />
+                                <span>{activity.title}</span>
+                              </Space>
+                            }
+                            extra={
+                              <Popconfirm
+                                title="确定要从该活动中移除此候选人吗？"
+                                onConfirm={() => handleRemoveFromActivity(activity.id, currentCandidate.id)}
+                                okText="确定"
+                                cancelText="取消"
+                              >
+                                <Button danger size="small">移除</Button>
+                              </Popconfirm>
+                            }
+                            style={{ marginBottom: 8 }}
+                          >
+                            <p>
+                              <Text type="secondary">
+                                活动时间: {new Date(activity.start_time).toLocaleDateString()} - {new Date(activity.end_time).toLocaleDateString()}
+                              </Text>
+                            </p>
+                            <p>
+                              <Text type="secondary">
+                                活动状态: {activity.is_active ? <Tag color="green">进行中</Tag> : <Tag color="default">已结束</Tag>}
+                              </Text>
+                            </p>
+                          </Card>
+                        ))}
+                      </Space>
+                    </div>
+                  ) : (
+                    <div className="mt-2">
+                      <Text type="secondary">该候选人未参与任何活动</Text>
+                    </div>
+                  )}
+                </div>
               </Col>
             </Row>
           </div>

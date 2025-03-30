@@ -76,22 +76,7 @@ class VoteService:
 
     @staticmethod
     def create_vote(db: Session, candidate_id: int, voter_id: str, activity_id: int):
-        # 获取活动配置
-        activity = db.query(VoteActivity).filter(VoteActivity.id == activity_id).first()
-        if not activity:
-            raise ValueError("投票活动不存在")
-        
-        # 检查总票数
-        existing_votes_count = db.query(Vote).filter(
-            Vote.voter_id == voter_id,
-            Vote.activity_id == activity_id
-        ).count()
-        
-        if existing_votes_count >= activity.max_votes:
-            raise ValueError(f"每人最多投{activity.max_votes}票")
-        if existing_votes_count < activity.min_votes - 1:
-            raise ValueError(f"至少需要投{activity.min_votes}票")
-        
+
         candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
         if not candidate:
             raise ValueError("候选人不存在")
@@ -334,8 +319,49 @@ class VoteService:
     @staticmethod
     def create_bulk_votes(db: Session, candidate_ids: List[int], voter_id: str, activity_id: int):
         try:
+            # 获取活动配置
+            activity = db.query(VoteActivity).filter(VoteActivity.id == activity_id).first()
+            if not activity:
+                raise ValueError("投票活动不存在")
+            
+            # 检查活动是否激活
+            if not activity.is_active:
+                raise ValueError("该投票活动未激活，无法进行投票")
+            
+            # 检查活动是否过期
+            current_time = datetime.now()
+            if current_time < activity.start_time:
+                raise ValueError("投票活动尚未开始")
+            if current_time > activity.end_time:
+                raise ValueError("投票活动已结束")
+            
+            # 检查投票数量是否符合要求
+            if len(candidate_ids) < activity.min_votes:
+                raise ValueError(f"至少需要投票给{activity.min_votes}名候选人")
+            if len(candidate_ids) > activity.max_votes:
+                raise ValueError(f"最多只能投票给{activity.max_votes}名候选人")
+            
+            # 检查候选人是否都在当前活动中
+            activity_candidate_ids = [assoc.candidate_id for assoc in activity.associations]
+            invalid_candidates = [cid for cid in candidate_ids if cid not in activity_candidate_ids]
+            if invalid_candidates:
+                raise ValueError(f"选择的候选人中有{len(invalid_candidates)}名不在该活动中")
+            
+            # 检查是否有重复的候选人ID
+            if len(candidate_ids) != len(set(candidate_ids)):
+                raise ValueError("不能对同一个候选人投多次票")
+            
+            # 检查用户是否已经在此活动中投过票
+            existing_votes = db.query(Vote).filter(
+                Vote.voter_id == voter_id,
+                Vote.activity_id == activity_id
+            ).count()
+            
+            if existing_votes > 0:
+                raise ValueError("您已经在此活动中投过票了")
+        
             results = {'success_count': 0, 'errors': []}
-            # db.begin()
+            # db.begin()下  
             for cid in candidate_ids:
                 try:
                     VoteService.create_vote(db, cid, voter_id, activity_id)
@@ -349,7 +375,8 @@ class VoteService:
             return results
         except Exception as e:
             db.rollback()
-            raise ValueError(f"Batch operation failed: {str(e)}")
+            VoteService.logger.error(f"投票失败: {str(e)}")
+            raise ValueError(f"投票失败: {str(e)}")
 
     @staticmethod
     def get_vote_trends(db: Session) -> VoteTrendResponse:
