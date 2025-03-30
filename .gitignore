@@ -37,3 +37,6 @@ frontend/package-lock.json
 package-lock.json
 backend/app.log.1
 backend/app.log.3
+vote_v4_cas
+Redis-7.2.4-Windows-x64-msys2-with-Service/dump.rdb
+Redis-7.2.4-Windows-x64-msys2-with-Service/redis_6379.pid

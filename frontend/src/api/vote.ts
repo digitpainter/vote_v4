@@ -50,3 +50,25 @@ export  async function getActivityVotes (activityId: number) {
     throw error;
   }
 };
+
+export async function getActiveStatistics() {
+  try {
+    const response = await fetch(`http://localhost:8000/vote/active-statistics`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+      credentials: 'include',
+      mode: 'cors'
+    });
+
+    if (!response.ok) {
+      const message = handleApiError(response.status, await response.json());
+      throw new Error('Failed to get statistics data: ' + message);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('[API Error] Get voting statistics error:', error);
+    throw error;
+  }
+}

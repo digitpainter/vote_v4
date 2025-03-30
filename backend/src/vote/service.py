@@ -5,6 +5,7 @@ from typing import Optional, List
 import logging
 from logging.handlers import RotatingFileHandler
 
+from sqlalchemy import func
 from sqlalchemy.sql.operators import is_associative
 
 from backend.src.auth.service import AuthService
@@ -20,6 +21,30 @@ class VoteService:
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
+
+    @staticmethod
+    def get_activity_vote_statistics(db: Session, activity_id: int):
+        results = db.query(
+            Vote.candidate_id,
+            Candidate.name,
+            Candidate.college_id,
+            func.count(Vote.id).label('vote_count')
+        ).join(
+            Candidate, Vote.candidate_id == Candidate.id
+        ).filter(
+            Vote.activity_id == activity_id
+        ).group_by(
+            Vote.candidate_id, Candidate.name, Candidate.college_id
+        ).all()
+
+        return [
+            {
+                'candidate_id': r[0],
+                'name': r[1],
+                'college_id': r[2],
+                'vote_count': r[3]
+            } for r in results
+        ]
 
     @staticmethod
     def create_candidate(db: Session, candidate: CandidateCreate):

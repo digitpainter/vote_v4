@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator ,Field
+from pydantic import BaseModel
 from datetime import datetime,timedelta
 from typing import List, Optional
 import faker  # 新增faker库
@@ -55,5 +55,14 @@ class ActivityResponse(BaseModel):
     candidate_ids: List[int] = []
     max_votes: int
     min_votes: int
+    class Config:
+        orm_mode = True
+
+class ActiveVoteStatistics(BaseModel):
+    candidate_id: int
+    name: str
+    college_id: str
+    vote_count: int
+
     class Config:
         orm_mode = True

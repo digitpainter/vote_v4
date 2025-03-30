@@ -1,6 +1,7 @@
 import { Drawer, Menu, Avatar, Button } from 'antd';
 import { useAuth } from '../contexts/AuthContext';
 import { UserRole, AdminType } from '../types/auth';
+import { Link } from 'react-router';
 
 const roleMap: Record<UserRole, string> = {
   [UserRole.UNDERGRADUATE]: '本科生',
@@ -23,8 +24,9 @@ export default function Sidebar() {
         <Menu
           mode="inline"
           items={[
-            { key: '1', label: '个人中心' },
-            { key: '2', label: '系统设置' },
+            { key: '1', label: <Link to="/">投票</Link> },
+            { key: '2', label: <Link to="/stats">统计</Link> },
+            { key: '3', label: <Link to="/manage">管理</Link> }, 
           ]}
         />
       </div>

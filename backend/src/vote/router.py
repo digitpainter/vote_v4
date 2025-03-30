@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from sqlalchemy.orm import Session
 from typing import List
 
-from .schemas import CandidateCreate, CandidateResponse, VoteRecord, ActivityCreate, ActivityResponse
+from .schemas import CandidateCreate, CandidateResponse, VoteRecord, ActivityCreate, ActivityResponse, ActiveVoteStatistics
 from .service import VoteService
 from ..database import get_db
 from ..auth.dependencies import check_roles
@@ -10,6 +10,17 @@ from ..auth.service import AuthService
 from ..models import  Vote
 
 router = APIRouter()
+
+@router.get("/active-statistics", response_model=List[ActiveVoteStatistics])
+def get_active_activities_statistics(
+    db: Session = Depends(get_db),
+    # _= check_roles(allowed_admin_types=["school"])
+):
+    activities = VoteService.get_active_activities(db)
+    if not activities:
+        return []
+    print(activities[0])
+    return VoteService.get_activity_vote_statistics(db, activity_id=activities[0]["id"])
 
 @router.post("/candidates/", response_model=CandidateResponse)
 def create_user(user: CandidateCreate, db: Session = Depends(get_db), _= check_roles(allowed_admin_types=["school"])):
@@ -67,7 +78,7 @@ def create_bulk_votes(
         try:
             user_session = AuthService.get_user_session(token)
         except ValueError as e:
-            raise HTTPException(status_code=401, detail="Invalid or expired session")
+            raise HTTPException(status_code=401, detail="会话过期或者无效,需要重新登录")
         voter_id = user_session.staff_id
 
         # Check existing votes
@@ -82,10 +93,6 @@ def create_bulk_votes(
         return {"success_count": results['success_count'], "errors": results['errors']}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-
-@router.get("/votes/{voter_id}", response_model=List[VoteRecord])
-def get_vote_records(voter_id: int, db: Session = Depends(get_db)):
-    return VoteService.get_vote_records(db, voter_id)
 
 @router.post("/activities/", response_model=ActivityResponse)
 def create_activity(activity: ActivityCreate, db: Session = Depends(get_db)):
@@ -109,13 +116,13 @@ def update_activity(activity_id: int, activity: ActivityCreate, db: Session = De
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.delete("/activities/{activity_id}")
-def delete_activity(activity_id: int, db: Session = Depends(get_db), _= check_roles(allowed_admin_types=["school"],allowed_roles=["teacher"])):
-    try:
-        VoteService.delete_activity(db, activity_id)
-        return {"message": "Activity deleted successfully"}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+# @router.delete("/activities/{activity_id}")
+# def delete_activity(activity_id: int, db: Session = Depends(get_db), _= check_roles(allowed_admin_types=["school"],allowed_roles=["teacher"])):
+#     try:
+#         VoteService.delete_activity(db, activity_id)
+#         return {"message": "Activity deleted successfully"}
+#     except ValueError as e:
+#         raise HTTPException(status_code=400, detail=str(e))
 
 @router.put("/candidates/{candidate_id}", response_model=CandidateResponse)
 def update_candidate(candidate_id: int, user: CandidateCreate, db: Session = Depends(get_db)):
@@ -134,13 +141,13 @@ def update_candidate(candidate_id: int, user: CandidateCreate, db: Session = Dep
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.delete("/candidates/{candidate_id}")
-def delete_candidate(candidate_id: int, db: Session = Depends(get_db), _= check_roles(allowed_admin_types=["school"])):
-    try:
-        VoteService.delete_candidate(db, candidate_id)
-        return {"message": "Candidate deleted successfully"}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+# @router.delete("/candidates/{candidate_id}")
+# def delete_candidate(candidate_id: int, db: Session = Depends(get_db), _= check_roles(allowed_admin_types=["school"])):
+#     try:
+#         VoteService.delete_candidate(db, candidate_id)
+#         return {"message": "Candidate deleted successfully"}
+#     except ValueError as e:
+#         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/activities/{activity_id}/my-votes", response_model=List[int])
@@ -156,7 +163,11 @@ def get_my_activity_votes(
             raise HTTPException(status_code=401, detail="授权头信息缺失")
         
         token = auth_header.split(" ")[1] if " " in auth_header else auth_header
-        user_session = AuthService.get_user_session(token)
+        try:
+            user_session = AuthService.get_user_session(token)
+        except ValueError as e:
+            raise HTTPException(status_code=401, detail="会话过期或者无效,需要重新登录")
+
         voter_id = user_session.staff_id
         
         votes = VoteService.get_activity_votes(db, voter_id, activity_id)

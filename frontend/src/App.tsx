@@ -9,6 +9,7 @@ import { Routes, Route } from 'react-router';
 import ProtectedRoute from './components/ProtectedRoute';
 import CASLoginPage from './pages/CASLoginPage'
 import CasCallbackPage from './pages/CasCallbackPage';
+import StatsPage from './pages/StatsPage';
 import { SidebarController } from './components/SidebarController';
 
 function App() {
@@ -22,6 +23,11 @@ function App() {
             <Routes>
               <Route path="/login" element={<CASLoginPage />} />
               <Route path="/cas-callback" element={<CasCallbackPage />} />
+              <Route path="/stats" element={
+                <ProtectedRoute>
+                  <StatsPage />
+                </ProtectedRoute>
+              } />
               <Route path="/" element={
                 <ProtectedRoute>
                   <HeaderComponent />

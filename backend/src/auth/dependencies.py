@@ -12,7 +12,12 @@ def check_roles(allowed_roles: List[str] = [], allowed_admin_types: List[str] = 
         token = auth_header.split(" ")[1]
         try:
             if not AuthService.is_valid_token(token):
-                raise HTTPException(status_code=401, detail="Invalid or expired session")
+                raise HTTPException(status_code=401, detail="会话过期或者无效,需要重新登录")
+            try:
+                user_session = AuthService.get_user_session(token)
+            except ValueError as e:
+                raise HTTPException(status_code=401, detail="会话过期或者无效,需要重新登录")
+            
             user_session = AuthService.get_user_session(token)
             if user_session.role not in allowed_roles:
                 raise HTTPException(

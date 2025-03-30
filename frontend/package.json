@@ -11,9 +11,11 @@
   },
   "dependencies": {
     "@ant-design/v5-patch-for-react-19": "^1.0.3",
+    "@antv/g2": "^5.2.12",
     "@tailwindcss/cli": "^4.0.15",
     "@tailwindcss/vite": "^4.0.15",
     "antd": "^5.1.0",
+    "axios": "^1.8.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router": "^7.4.0"
