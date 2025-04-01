@@ -489,7 +489,7 @@ class VoteService:
 
     @staticmethod
     async def get_vote_records(db: Session, activity_id: int, college_id: Optional[str] = None, 
-                         start_date: Optional[str] = None, end_date: Optional[str] = None):
+                         start_date: Optional[str] = None, end_date: Optional[str] = None, limit: Optional[int] = None):
         """
         Get unique voter records for export with filtering options
         
@@ -499,6 +499,7 @@ class VoteService:
             college_id: Optional ID of the college to filter
             start_date: Optional start date for date range filter (YYYY-MM-DD)
             end_date: Optional end date for date range filter (YYYY-MM-DD)
+            limit: Optional maximum number of records to return
             
         Returns:
             List of unique voter records formatted for export
@@ -517,6 +518,10 @@ class VoteService:
         
         # Execute query to get unique voter IDs
         voter_ids = [v[0] for v in query.all()]
+        
+        # Apply limit if provided (before processing records)
+        if limit and limit > 0:
+            voter_ids = voter_ids[:limit]
         
         # Format voter records
         formatted_records = []

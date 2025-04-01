@@ -252,6 +252,47 @@ async def export_data(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取数据失败: {str(e)}")
 
+@router.get("/preview")
+async def preview_data(
+    activity_id: int,
+    college_id: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    limit: int = 10,
+    db: Session = Depends(get_db),
+):
+    """
+    Get preview data in JSON format
+    
+    Args:
+        activity_id: ID of the activity
+        college_id: Optional college ID to filter data
+        start_date: Optional start date for date range (YYYY-MM-DD)
+        end_date: Optional end date for date range (YYYY-MM-DD)
+        limit: Maximum number of records to return (default 10)
+    """
+    try:
+        # Get activity details
+        activity = db.query(VoteActivity).filter(VoteActivity.id == activity_id).first()
+        if not activity:
+            raise HTTPException(status_code=404, detail="活动不存在")
+        
+        # Get preview data (limited vote records)
+        data = await VoteService.get_vote_records(db, activity_id, college_id, start_date, end_date, limit=limit)
+        
+        return {
+            "activity": {
+                "id": activity.id,
+                "title": activity.title,
+                "start_time": activity.start_time,
+                "end_time": activity.end_time
+            },
+            "data": data
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取预览数据失败: {str(e)}")
+
 @router.get("/colleges/")
 async def get_college_info():
     """学院信息代理接口，用于解决跨域问题"""

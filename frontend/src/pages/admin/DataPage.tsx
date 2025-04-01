@@ -142,19 +142,6 @@ export default function DataPage() {
     }
   };
 
-  // 获取学生信息
-  const getStudentInfo = async (studentId: string): Promise<StudentInfo | null> => {
-    // 这个应该是后端调用，前端只需要发送请求到后端
-    // 示例实现，实际情况中应该通过后端API获取
-    try {
-      const response = await axios.get(`/api/student/${studentId}`);
-      return response.data[0] || null;
-    } catch (error) {
-      console.error('获取学生信息失败:', error);
-      return null;
-    }
-  };
-
   // 表格列定义 - 投票记录
   const voteRecordColumns: TableColumnsType<VoteRecord> = [
     {
@@ -183,40 +170,21 @@ export default function DataPage() {
     
     setPreviewLoading(true);
     try {
-      // 在实际应用中，这里应调用后端API获取数据
-      // const params = {
-      //   activity_id: selectedActivity,
-      //   college_id: selectedCollege !== 'all' ? selectedCollege : undefined,
-      //   start_date: dateRange ? dateRange[0].toISOString().split('T')[0] : undefined,
-      //   end_date: dateRange ? dateRange[1].toISOString().split('T')[0] : undefined,
-      // };
-      // const response = await axios.get('/api/vote-records/preview', { params });
-      // setVoteRecords(response.data);
+      // 准备请求参数
+      const params = {
+        activity_id: selectedActivity,
+        college_id: selectedCollege !== 'all' ? selectedCollege : undefined,
+        start_date: dateRange ? dateRange[0].toISOString().split('T')[0] : undefined,
+        end_date: dateRange ? dateRange[1].toISOString().split('T')[0] : undefined,
+      };
       
-      // 模拟API调用获取预览数据
-      setTimeout(() => {
-        // 生成模拟数据
-        const dummyVoteRecords: VoteRecord[] = [];
-        const activityName = activities.find(a => a.id === selectedActivity)?.title || '';
-        
-        for (let i = 1; i <= 20; i++) {
-          const collegeIndex = i % colleges.length;
-          const college = colleges[collegeIndex === 0 ? 1 : collegeIndex]; // 跳过"全部学院"选项
-          
-          // 如果选择了特定学院且不是"全部学院"，则只显示该学院的记录
-          if (selectedCollege && selectedCollege !== 'all' && college.YXDM !== selectedCollege) {
-            continue;
-          }
-          
-          dummyVoteRecords.push({
-            voter_id: `BC${2300 + i}`,
-            voter_college_name: college.YXDM_TEXT,
-          });
-        }
-        
-        setVoteRecords(dummyVoteRecords);
-        setPreviewLoading(false);
-      }, 1000);
+      // 获取预览数据
+      const response = await axios.get('http://localhost:8000/vote/preview', { params });
+      const { data } = response;
+      
+      // 设置预览数据
+      setVoteRecords(data.data.records);
+      setPreviewLoading(false);
     } catch (error) {
       console.error('获取预览数据失败:', error);
       message.error('获取预览数据失败，请稍后重试');
@@ -292,8 +260,6 @@ export default function DataPage() {
     switch(format) {
       case 'excel':
         return <FileExcelOutlined className="text-green-600" />;
-      case 'pdf':
-        return <FilePdfOutlined className="text-red-600" />;
       case 'csv':
         return <FileTextOutlined className="text-blue-600" />;
       default:
