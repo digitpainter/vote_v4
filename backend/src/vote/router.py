@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends, Query, Request, File, UploadFile, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 import httpx
 import json
 import os
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 import shutil
 from pathlib import Path
 from datetime import datetime
@@ -15,7 +15,7 @@ from .service import VoteService
 from ..database import get_db
 from ..auth.dependencies import check_roles
 from ..auth.service import AuthService
-from ..models import  Vote
+from ..models import  Vote, VoteActivity
 from ..config import IMAGES_DIR, IMAGE_CONFIG, BASE_URL
 
 router = APIRouter()
@@ -199,9 +199,58 @@ def remove_candidate_from_activity(
     """从活动中移除候选人，解除候选人与活动的关联"""
     try:
         VoteService.remove_candidate_from_activity(db, activity_id, candidate_id)
-        return {"message": "候选人已从活动中移除"}
+        return {"message": "成功从活动中移除候选人"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/export")
+async def export_data(
+    activity_id: int,
+    export_type: str = "vote_records",
+    college_id: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Get data for export in JSON format
+    
+    Args:
+        activity_id: ID of the activity
+        export_type: Type of data to export ('vote_records', 'statistics', 'candidates')
+        college_id: Optional college ID to filter data
+        start_date: Optional start date for date range (YYYY-MM-DD)
+        end_date: Optional end date for date range (YYYY-MM-DD)
+    """
+    try:
+        # Get activity details
+        activity = db.query(VoteActivity).filter(VoteActivity.id == activity_id).first()
+        if not activity:
+            raise HTTPException(status_code=404, detail="活动不存在")
+        
+        # Get export data based on type
+        if export_type == 'vote_records':
+            data = await VoteService.get_vote_records(db, activity_id, college_id, start_date, end_date)
+        elif export_type == 'statistics':
+            data = VoteService.get_vote_statistics(db, activity_id, college_id)
+        elif export_type == 'candidates':
+            data = VoteService.get_candidates_for_export(db, activity_id, college_id)
+        else:
+            raise HTTPException(status_code=400, detail="不支持的导出类型")
+        
+        return {
+            "activity": {
+                "id": activity.id,
+                "title": activity.title,
+                "start_time": activity.start_time,
+                "end_time": activity.end_time
+            },
+            "export_type": export_type,
+            "data": data
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取数据失败: {str(e)}")
 
 @router.get("/colleges/")
 async def get_college_info():

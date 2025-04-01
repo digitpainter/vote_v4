@@ -26,6 +26,7 @@ import {
 } from '@ant-design/icons';
 import type { TableColumnsType } from 'antd';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -52,16 +53,23 @@ interface College {
 
 // 投票记录类型
 interface VoteRecord {
-  id: string;
-  voterId: string;
-  voterName: string;
-  candidateId: string;
-  candidateName: string;
-  activityId: number;
-  activityName: string;
-  collegeId: string;
-  collegeName: string;
-  voteTime: string;
+  voter_id: string;
+  voter_college_name: string;
+}
+
+// 导出数据响应类型
+interface ExportResponse {
+  activity: {
+    id: number;
+    title: string;
+    start_time: string;
+    end_time: string;
+  };
+  export_type: string;
+  data: {
+    total_voters: number;
+    records: VoteRecord[];
+  };
 }
 
 // 学生信息类型
@@ -151,39 +159,18 @@ export default function DataPage() {
   const voteRecordColumns: TableColumnsType<VoteRecord> = [
     {
       title: '投票人ID',
-      dataIndex: 'voterId',
-      key: 'voterId',
-    },
-    {
-      title: '投票人',
-      dataIndex: 'voterName',
-      key: 'voterName',
+      dataIndex: 'voter_id',
+      key: 'voter_id',
     },
     {
       title: '所属学院',
-      dataIndex: 'collegeName',
-      key: 'collegeName',
+      dataIndex: 'voter_college_name',
+      key: 'voter_college_name',
       filters: colleges.filter(college => college.YXDM !== 'all').map(college => ({
         text: college.YXDM_TEXT,
         value: college.YXDM,
       })),
-      onFilter: (value, record) => record.collegeId === value,
-    },
-    {
-      title: '候选人',
-      dataIndex: 'candidateName',
-      key: 'candidateName',
-    },
-    {
-      title: '活动名称',
-      dataIndex: 'activityName',
-      key: 'activityName',
-    },
-    {
-      title: '投票时间',
-      dataIndex: 'voteTime',
-      key: 'voteTime',
-      sorter: (a, b) => new Date(a.voteTime).getTime() - new Date(b.voteTime).getTime(),
+      onFilter: (value, record) => record.voter_college_name === value,
     },
   ];
 
@@ -222,16 +209,8 @@ export default function DataPage() {
           }
           
           dummyVoteRecords.push({
-            id: `${i}`,
-            voterId: `BC${2300 + i}`,
-            voterName: `学生${i}`,
-            candidateId: `candidate_${i % 5 + 1}`,
-            candidateName: `候选人${i % 5 + 1}`,
-            activityId: selectedActivity,
-            activityName,
-            collegeId: college.YXDM,
-            collegeName: college.YXDM_TEXT,
-            voteTime: new Date(Date.now() - i * 3600000).toISOString().replace('T', ' ').substring(0, 19)
+            voter_id: `BC${2300 + i}`,
+            voter_college_name: college.YXDM_TEXT,
           });
         }
         
@@ -255,14 +234,6 @@ export default function DataPage() {
     setDownloadLoading(true);
     
     try {
-      // 获取文件格式文本
-      const formatText = exportFormat === 'excel' ? 'Excel' : exportFormat === 'pdf' ? 'PDF' : 'CSV';
-      
-      // 获取导出类型文本
-      const typeText = 
-        exportType === 'vote_records' ? '投票记录' : 
-        exportType === 'statistics' ? '统计数据' : '候选人信息';
-      
       // 准备请求参数
       const params = {
         activity_id: selectedActivity,
@@ -273,31 +244,45 @@ export default function DataPage() {
         end_date: dateRange ? dateRange[1].toISOString().split('T')[0] : undefined,
       };
       
-      message.success(`正在下载${formatText}格式的${typeText}，请稍候...`);
+      // 获取数据
+      const response = await axios.get<ExportResponse>('http://localhost:8000/vote/export', { params });
+      const { data } = response;
       
-      // 实际项目中应调用后端API下载文件
-      // const response = await axios.get('/api/export', { 
-      //   params,
-      //   responseType: 'blob'
-      // });
+      // 根据导出格式处理数据
+      if (exportFormat === 'excel' || exportFormat === 'csv') {
+        // 准备Excel/CSV数据
+        const headers = ['学号', '学院'];
+        const rows = data.data.records.map((record: VoteRecord) => [
+          record.voter_id,
+          record.voter_college_name
+        ]);
+        
+        // 创建工作簿
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+        
+        // 设置列宽
+        const colWidths = [
+          { wch: 15 }, // 学号列宽
+          { wch: 20 }  // 学院列宽
+        ];
+        ws['!cols'] = colWidths;
+        
+        // 添加工作表到工作簿
+        XLSX.utils.book_append_sheet(wb, ws, '投票记录');
+        
+        // 生成文件名
+        const fileName = `投票记录_${data.activity.title}_${new Date().toISOString().split('T')[0]}.${exportFormat === 'excel' ? 'xlsx' : 'csv'}`;
+        
+        // 导出文件
+        XLSX.writeFile(wb, fileName);
+      }
       
-      // 创建一个下载链接
-      // const url = window.URL.createObjectURL(new Blob([response.data]));
-      // const link = document.createElement('a');
-      // link.href = url;
-      // link.setAttribute('download', `${typeText}_${new Date().toISOString().split('T')[0]}.${exportFormat}`);
-      // document.body.appendChild(link);
-      // link.click();
-      // document.body.removeChild(link);
-      
-      // 模拟下载延迟
-      setTimeout(() => {
-        message.success(`${formatText}格式的${typeText}下载完成`);
-        setDownloadLoading(false);
-      }, 1500);
+      message.success('导出成功');
     } catch (error) {
-      console.error('下载失败:', error);
-      message.error('下载失败，请稍后重试');
+      console.error('导出失败:', error);
+      message.error('导出失败，请稍后重试');
+    } finally {
       setDownloadLoading(false);
     }
   };
@@ -474,7 +459,7 @@ export default function DataPage() {
               <Table 
                 columns={voteRecordColumns} 
                 dataSource={voteRecords}
-                rowKey="id"
+                rowKey="voter_id"
                 size="small"
                 pagination={{ pageSize: 5 }}
                 loading={previewLoading}

@@ -1,11 +1,15 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import func, desc, text
 from datetime import datetime, timedelta
 from fastapi import HTTPException, Query
-from typing import Optional, List
+from typing import Optional, List, Dict, Any, Tuple, Union
 import logging
 from logging.handlers import RotatingFileHandler
+import json
+import re
+import os
+import httpx
 
-from sqlalchemy import func
 from sqlalchemy.sql.operators import is_associative
 
 from backend.src.auth.service import AuthService
@@ -445,3 +449,234 @@ class VoteService:
             ))
         
         return VoteTrendResponse(trends=trends, daily_totals=daily_totals)
+
+
+    @staticmethod
+    async def get_student_info(stuff_id: str) -> Optional[Dict[str, str]]:
+        """
+        Get student information from internal API
+        
+        Args:
+            stuff_id: Student ID
+            
+        Returns:
+            Dictionary containing student information or None if not found
+        """
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(f"https://class101.nuaa.edu.cn/stu_info/xgh/{stuff_id}")
+                if response.status_code == 200:
+                    data = response.json()
+                    if data and len(data) > 0:
+                        return {
+                            "name": data[0].get("XM", ""),
+                            "college_id": data[0].get("YXDM", ""),
+                            "college_name": data[0].get("YXDM_TEXT", ""),
+                            "major": data[0].get("ZYMD_TEXT", ""),
+                            "grade": data[0].get("NJ", ""),
+                            "student_type": data[0].get("RYBQDM_TEXT", "")
+                        }
+        except Exception as e:
+            VoteService.logger.error(f"Error fetching student info: {str(e)}")
+        return {
+            "name": "保底数据",
+            "college_id": "0503000",
+            "college_name": "自动化学院",
+            "major": "控制科学与工程",
+            "grade": "2023",
+            "student_type": "研究生"
+        }
+
+    @staticmethod
+    async def get_vote_records(db: Session, activity_id: int, college_id: Optional[str] = None, 
+                         start_date: Optional[str] = None, end_date: Optional[str] = None):
+        """
+        Get unique voter records for export with filtering options
+        
+        Args:
+            db: Database session
+            activity_id: ID of the activity to filter votes
+            college_id: Optional ID of the college to filter
+            start_date: Optional start date for date range filter (YYYY-MM-DD)
+            end_date: Optional end date for date range filter (YYYY-MM-DD)
+            
+        Returns:
+            List of unique voter records formatted for export
+        """
+        # Get unique voters for this activity
+        query = db.query(Vote.voter_id).filter(Vote.activity_id == activity_id).distinct()
+        
+        # Apply date range filter if provided
+        if start_date:
+            start_datetime = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
+            query = query.filter(Vote.created_at >= start_datetime)
+        
+        if end_date:
+            end_datetime = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+            query = query.filter(Vote.created_at <= end_datetime)
+        
+        # Execute query to get unique voter IDs
+        voter_ids = [v[0] for v in query.all()]
+        
+        # Format voter records
+        formatted_records = []
+        for voter_id in voter_ids:
+            # Get student information
+            student_info = await VoteService.get_student_info(voter_id)
+            
+            # Format the record
+            record = {
+                "voter_id": voter_id,
+                "voter_college_name": student_info["college_name"] if student_info else ""
+            }
+            
+            formatted_records.append(record)
+        
+        return {
+            "total_voters": len(voter_ids),
+            "records": formatted_records
+        }
+    
+    @staticmethod
+    def get_candidates_for_export(db: Session, activity_id: int, college_id: Optional[str] = None):
+        """
+        Get candidate information for export
+        
+        Args:
+            db: Database session
+            activity_id: ID of the activity to filter candidates
+            college_id: Optional ID of the college to filter
+            
+        Returns:
+            List of candidates with vote counts formatted for export
+        """
+        # Get candidates based on activity id
+        activity = db.query(VoteActivity).filter(VoteActivity.id == activity_id).first()
+        if not activity:
+            raise ValueError(f"Activity with ID {activity_id} not found")
+        
+        # Get candidate IDs for this activity
+        candidate_associations = db.query(ActivityCandidateAssociation).filter(
+            ActivityCandidateAssociation.activity_id == activity_id
+        ).all()
+        
+        candidate_ids = [assoc.candidate_id for assoc in candidate_associations]
+        
+        # Query candidates
+        query = db.query(Candidate).filter(Candidate.id.in_(candidate_ids))
+        
+        # Apply college filter if provided
+        if college_id and college_id != 'all':
+            query = query.filter(Candidate.college_id == college_id)
+        
+        candidates = query.all()
+        
+        # Format candidate information with vote counts
+        formatted_candidates = []
+        for candidate in candidates:
+            # Get vote count for this candidate in this activity
+            vote_count = db.query(Vote).filter(
+                Vote.candidate_id == candidate.id,
+                Vote.activity_id == activity_id
+            ).count()
+            
+            formatted_candidate = {
+                "id": candidate.id,
+                "name": candidate.name,
+                "college_id": candidate.college_id,
+                "college_name": candidate.college_name,
+                "photo": candidate.photo,
+                "bio": candidate.bio,
+                "vote_count": vote_count
+            }
+            
+            formatted_candidates.append(formatted_candidate)
+        
+        return formatted_candidates
+    
+    @staticmethod
+    def get_vote_statistics(db: Session, activity_id: int, college_id: Optional[str] = None):
+        """
+        Get voting statistics for export
+        
+        Args:
+            db: Database session
+            activity_id: ID of the activity
+            college_id: Optional ID of the college to filter
+            
+        Returns:
+            Dictionary with voting statistics
+        """
+        # Get activity information
+        activity = db.query(VoteActivity).filter(VoteActivity.id == activity_id).first()
+        if not activity:
+            raise ValueError(f"Activity with ID {activity_id} not found")
+        
+        # Get candidate IDs for this activity
+        candidate_associations = db.query(ActivityCandidateAssociation).filter(
+            ActivityCandidateAssociation.activity_id == activity_id
+        ).all()
+        
+        candidate_ids = [assoc.candidate_id for assoc in candidate_associations]
+        
+        # Get candidates
+        query = db.query(Candidate).filter(Candidate.id.in_(candidate_ids))
+        
+        # Apply college filter if provided
+        if college_id and college_id != 'all':
+            query = query.filter(Candidate.college_id == college_id)
+        
+        candidates = query.all()
+        
+        # Calculate statistics
+        statistics = {
+            "activity_info": {
+                "id": activity.id,
+                "title": activity.title,
+                "start_time": activity.start_time,
+                "end_time": activity.end_time,
+                "total_candidates": len(candidates)
+            },
+            "vote_counts": [],
+            "college_participation": {}
+        }
+        
+        # Get vote counts for each candidate
+        for candidate in candidates:
+            vote_count = db.query(Vote).filter(
+                Vote.candidate_id == candidate.id,
+                Vote.activity_id == activity_id
+            ).count()
+            
+            statistics["vote_counts"].append({
+                "candidate_id": candidate.id,
+                "candidate_name": candidate.name,
+                "college_id": candidate.college_id,
+                "college_name": candidate.college_name,
+                "vote_count": vote_count
+            })
+        
+        # Calculate college participation statistics
+        college_votes = {}
+        
+        for candidate in candidates:
+            college_id = candidate.college_id
+            college_name = candidate.college_name
+            
+            if college_id not in college_votes:
+                college_votes[college_id] = {
+                    "college_id": college_id,
+                    "college_name": college_name,
+                    "total_votes": 0
+                }
+            
+            vote_count = db.query(Vote).filter(
+                Vote.candidate_id == candidate.id,
+                Vote.activity_id == activity_id
+            ).count()
+            
+            college_votes[college_id]["total_votes"] += vote_count
+        
+        statistics["college_participation"] = list(college_votes.values())
+        
+        return statistics

@@ -76,3 +76,27 @@ class VoteTrendItem(BaseModel):
 class VoteTrendResponse(BaseModel):
     trends: List[VoteTrendItem]
     daily_totals: List[VoteTrendItem]
+
+# Adding new schemas for data export
+class ExportParams(BaseModel):
+    activity_id: int
+    export_type: str  # 'vote_records', 'statistics', 'candidates'
+    format: str  # 'excel', 'pdf', 'csv'
+    college_id: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+
+class VoteRecordExport(BaseModel):
+    id: int
+    voter_id: str
+    voter_name: str
+    candidate_id: int
+    candidate_name: str
+    activity_id: int
+    activity_name: str
+    college_id: str
+    college_name: str
+    vote_time: datetime
+
+    class Config:
+        orm_mode = True
