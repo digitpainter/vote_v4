@@ -49,6 +49,24 @@ import { getAllCollegeInfo, CollegeInfo, getCollegeNameById } from '../../api/co
 import { Activity, ApiActivity, ActivityFormData, Candidate } from '../../types/activity';
 import dayjs from 'dayjs';
 import type { TransferDirection } from 'antd/es/transfer';
+// Add dnd-kit imports
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -67,6 +85,42 @@ interface OrderedCandidate extends Candidate {
   order?: number;
 }
 
+// Add SortableItem component for DND
+function SortableItem({ id, candidate, collegeInfoList }: { id: string, candidate: Candidate | null, collegeInfoList: CollegeInfo[] }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id });
+  
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+    zIndex: isDragging ? 999 : 1,
+    position: 'relative' as const
+  };
+  
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <div className={`flex items-center p-3 border rounded mb-2 bg-white shadow-sm hover:shadow-md transition-all duration-200 ${isDragging ? 'ring-2 ring-blue-500 shadow-lg' : ''}`}>
+        <div className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-50 mr-3 text-gray-400">
+          <MenuOutlined />
+        </div>
+        <div className="flex-1">
+          <span className="font-medium text-gray-800">{candidate?.name}</span>
+          <span className="ml-2 text-gray-500">
+            - {candidate?.college_id ? getCollegeNameById(collegeInfoList, candidate.college_id.toString()) : '未知学院'}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ActivitiesPage() {
   const [activities, setActivities] = useState<ApiActivity[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -83,6 +137,38 @@ export default function ActivitiesPage() {
   const [selectedActivity, setSelectedActivity] = useState<ApiActivity | null>(null);
   const [collegeInfoList, setCollegeInfoList] = useState<CollegeInfo[]>([]);
   const [orderedTargetKeys, setOrderedTargetKeys] = useState<string[]>([]);
+
+  // 配置拖拽传感器
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+  
+  // 处理拖拽结束事件
+  const handleDragEnd = (event: DragEndEvent, isForm: boolean = false) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      const oldIndex = orderedTargetKeys.indexOf(active.id.toString());
+      const newIndex = orderedTargetKeys.indexOf(over.id.toString());
+      
+      const newOrderedKeys = arrayMove(orderedTargetKeys, oldIndex, newIndex);
+      setOrderedTargetKeys(newOrderedKeys);
+      
+      // 如果是表单中的拖拽，更新表单值
+      if (isForm) {
+        form.setFieldsValue({ 
+          candidate_ids: newOrderedKeys.map(id => parseInt(id, 10))
+        });
+      }
+    }
+  };
 
   // 加载活动数据
   const fetchActivities = async () => {
@@ -415,39 +501,6 @@ export default function ActivitiesPage() {
     setOrderedTargetKeys([...existingKeys, ...newKeys]);
   };
 
-  // Handle reordering in the activity form
-  const moveFormCandidateUp = (index: number) => {
-    if (index <= 0) return;
-    
-    const newOrderedKeys = [...orderedTargetKeys];
-    const temp = newOrderedKeys[index];
-    newOrderedKeys[index] = newOrderedKeys[index - 1];
-    newOrderedKeys[index - 1] = temp;
-    
-    setOrderedTargetKeys(newOrderedKeys);
-    
-    // Update form value with the new order
-    form.setFieldsValue({ 
-      candidate_ids: newOrderedKeys.map(id => parseInt(id, 10)) 
-    });
-  };
-  
-  const moveFormCandidateDown = (index: number) => {
-    if (index >= orderedTargetKeys.length - 1) return;
-    
-    const newOrderedKeys = [...orderedTargetKeys];
-    const temp = newOrderedKeys[index];
-    newOrderedKeys[index] = newOrderedKeys[index + 1];
-    newOrderedKeys[index + 1] = temp;
-    
-    setOrderedTargetKeys(newOrderedKeys);
-    
-    // Update form value with the new order
-    form.setFieldsValue({ 
-      candidate_ids: newOrderedKeys.map(id => parseInt(id, 10)) 
-    });
-  };
-
   // 处理删除活动
   const handleDelete = async (id: number) => {
     try {
@@ -533,30 +586,6 @@ export default function ActivitiesPage() {
     setOrderedTargetKeys([...existingKeys, ...newKeys]);
   };
   
-  // Move candidate up in order
-  const moveCandidateUp = (index: number) => {
-    if (index <= 0) return;
-    
-    const newOrderedKeys = [...orderedTargetKeys];
-    const temp = newOrderedKeys[index];
-    newOrderedKeys[index] = newOrderedKeys[index - 1];
-    newOrderedKeys[index - 1] = temp;
-    
-    setOrderedTargetKeys(newOrderedKeys);
-  };
-  
-  // Move candidate down in order
-  const moveCandidateDown = (index: number) => {
-    if (index >= orderedTargetKeys.length - 1) return;
-    
-    const newOrderedKeys = [...orderedTargetKeys];
-    const temp = newOrderedKeys[index];
-    newOrderedKeys[index] = newOrderedKeys[index + 1];
-    newOrderedKeys[index + 1] = temp;
-    
-    setOrderedTargetKeys(newOrderedKeys);
-  };
-
   // Save candidates with their order
   const handleSaveCandidates = async () => {
     if (!selectedActivity) return;
@@ -700,39 +729,33 @@ export default function ActivitiesPage() {
           
           {/* 候选人排序 */}
           {orderedTargetKeys.length > 0 && (
-            <Form.Item label="候选人顺序" extra="可以调整候选人在投票界面中的显示顺序">
-              <Card size="small" bodyStyle={{ maxHeight: '300px', overflow: 'auto' }}>
-                <List
-                  size="small"
-                  dataSource={orderedTargetKeys}
-                  renderItem={(item, index) => {
-                    const candidate = getCandidateById(item);
-                    return (
-                      <List.Item
-                        actions={[
-                          <Button 
-                            type="text" 
-                            icon={<ArrowUpOutlined />} 
-                            disabled={index === 0}
-                            onClick={() => moveFormCandidateUp(index)}
-                          />,
-                          <Button 
-                            type="text" 
-                            icon={<ArrowDownOutlined />} 
-                            disabled={index === orderedTargetKeys.length - 1}
-                            onClick={() => moveFormCandidateDown(index)}
-                          />
-                        ]}
-                      >
-                        <div className="flex items-center">
-                          <span className="mr-2 text-gray-500">{index + 1}.</span>
-                          <span>{candidate?.name}</span>
-                          <span className="ml-2 text-gray-500">- {candidate?.college_id ? getCollegeNameById(collegeInfoList, candidate.college_id.toString()) : '未知学院'}</span>
-                        </div>
-                      </List.Item>
-                    );
-                  }}
-                />
+            <Form.Item label="候选人顺序" extra="可以通过拖拽调整候选人在投票界面中的显示顺序">
+              <Card 
+                size="small" 
+                className="border border-gray-200 rounded-lg shadow-sm"
+                bodyStyle={{ maxHeight: '300px', overflow: 'auto', padding: '16px' }}
+              >
+                <DndContext 
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={(event) => handleDragEnd(event, true)}
+                >
+                  <SortableContext 
+                    items={orderedTargetKeys} 
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="space-y-1">
+                      {orderedTargetKeys.map((id) => (
+                        <SortableItem 
+                          key={id} 
+                          id={id}
+                          candidate={getCandidateById(id)}
+                          collegeInfoList={collegeInfoList}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
               </Card>
             </Form.Item>
           )}
@@ -758,7 +781,7 @@ export default function ActivitiesPage() {
         cancelText="取消"
       >
         <div className="mb-4">
-          <p>从上方选择要包含在活动中的候选人，下方可调整候选人顺序：</p>
+          <p>从上方选择要包含在活动中的候选人，下方可通过拖拽调整候选人顺序：</p>
         </div>
         <div className="flex flex-col space-y-4">
           <div className="w-full">
@@ -790,40 +813,36 @@ export default function ActivitiesPage() {
           </div>
           
           <div className="w-full">
-            <Card title="候选人顺序" className="w-full">
-              <List
-                size="small"
-                bordered
-                dataSource={orderedTargetKeys}
-                renderItem={(item, index) => {
-                  const candidate = getCandidateById(item);
-                  return (
-                    <List.Item
-                      className="flex items-center"
-                      actions={[
-                        <Button 
-                          type="text" 
-                          icon={<ArrowUpOutlined />} 
-                          disabled={index === 0}
-                          onClick={() => moveCandidateUp(index)}
-                        />,
-                        <Button 
-                          type="text" 
-                          icon={<ArrowDownOutlined />} 
-                          disabled={index === orderedTargetKeys.length - 1}
-                          onClick={() => moveCandidateDown(index)}
-                        />
-                      ]}
-                    >
-                      <div className="flex items-center w-full">
-                        <span className="mr-2 text-gray-500">{index + 1}.</span>
-                        <span className="font-medium">{candidate?.name}</span>
-                        <span className="ml-2 text-gray-500">- {candidate?.college_id ? getCollegeNameById(collegeInfoList, candidate.college_id.toString()) : '未知学院'}</span>
-                      </div>
-                    </List.Item>
-                  );
-                }}
-              />
+            <Card 
+              title={
+                <div className="flex items-center">
+                  <MenuOutlined className="mr-2 text-blue-500" />
+                  <span>候选人顺序</span>
+                </div>
+              } 
+              className="w-full border border-gray-200 rounded-lg shadow-sm"
+            >
+              <DndContext 
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext 
+                  items={orderedTargetKeys} 
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-2 p-2">
+                    {orderedTargetKeys.map((id) => (
+                      <SortableItem 
+                        key={id} 
+                        id={id}
+                        candidate={getCandidateById(id)}
+                        collegeInfoList={collegeInfoList}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
             </Card>
           </div>
         </div>
