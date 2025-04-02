@@ -583,7 +583,7 @@ class VoteService:
         # Get candidate IDs for this activity
         candidate_associations = db.query(ActivityCandidateAssociation).filter(
             ActivityCandidateAssociation.activity_id == activity_id
-        ).all()
+        ).order_by(ActivityCandidateAssociation.position).all()
         
         candidate_ids = [assoc.candidate_id for assoc in candidate_associations]
         
@@ -640,7 +640,7 @@ class VoteService:
         # Get candidate IDs for this activity
         candidate_associations = db.query(ActivityCandidateAssociation).filter(
             ActivityCandidateAssociation.activity_id == activity_id
-        ).all()
+        ).order_by(ActivityCandidateAssociation.position).all()
         
         candidate_ids = [assoc.candidate_id for assoc in candidate_associations]
         
