@@ -16,7 +16,8 @@ import {
   Tooltip,
   Select,
   InputNumber,
-  Transfer
+  Transfer,
+  List
 } from 'antd';
 import { 
   PlusOutlined, 
@@ -26,7 +27,10 @@ import {
   CheckCircleOutlined, 
   ClockCircleOutlined,
   StopOutlined,
-  UserOutlined
+  UserOutlined,
+  MenuOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined
 } from '@ant-design/icons';
 import type { TableColumnsType } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
@@ -58,6 +62,11 @@ interface TransferItem {
   description: string;
 }
 
+// Add interface for candidate with order information
+interface OrderedCandidate extends Candidate {
+  order?: number;
+}
+
 export default function ActivitiesPage() {
   const [activities, setActivities] = useState<ApiActivity[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -73,6 +82,7 @@ export default function ActivitiesPage() {
   const [targetKeys, setTargetKeys] = useState<string[]>([]);
   const [selectedActivity, setSelectedActivity] = useState<ApiActivity | null>(null);
   const [collegeInfoList, setCollegeInfoList] = useState<CollegeInfo[]>([]);
+  const [orderedTargetKeys, setOrderedTargetKeys] = useState<string[]>([]);
 
   // 加载活动数据
   const fetchActivities = async () => {
@@ -348,24 +358,14 @@ export default function ActivitiesPage() {
     },
   ];
 
-  // 处理新增活动
-  const handleAdd = () => {
-    setModalType('create');
-    setCurrentActivity(null);
-    form.resetFields();
-    form.setFieldsValue({
-      is_active: true,
-      max_votes: 1,
-      min_votes: 1,
-      candidate_ids: [],
-    });
-    setIsModalVisible(true);
-  };
-
-  // 处理编辑活动
+  // Handle edit activity
   const handleEdit = (activity: ApiActivity) => {
     setModalType('edit');
     setCurrentActivity(activity);
+    
+    // Initialize ordered candidates 
+    setOrderedTargetKeys(activity.candidate_ids.map(id => id.toString()));
+    
     form.setFieldsValue({
       title: activity.title,
       description: activity.description,
@@ -376,6 +376,76 @@ export default function ActivitiesPage() {
       candidate_ids: activity.candidate_ids,
     });
     setIsModalVisible(true);
+  };
+
+  // Handle add activity
+  const handleAdd = () => {
+    setModalType('create');
+    setCurrentActivity(null);
+    form.resetFields();
+    form.setFieldsValue({
+      is_active: true,
+      max_votes: 1,
+      min_votes: 1,
+      candidate_ids: [],
+    });
+    // Clear ordered candidates
+    setOrderedTargetKeys([]);
+    setIsModalVisible(true);
+  };
+
+  // Handle form's candidate selection change
+  const handleCandidateSelectionChange = (selectedIds: number[]) => {
+    // Update form value
+    form.setFieldsValue({ candidate_ids: selectedIds });
+    
+    // Update ordered keys with the new selection
+    const selectedIdsAsStrings = selectedIds.map(id => id.toString());
+    
+    // Keep existing ordered items that are still selected
+    const existingKeys = orderedTargetKeys.filter(key => 
+      selectedIdsAsStrings.includes(key)
+    );
+    
+    // Add newly selected items at the end
+    const newKeys = selectedIdsAsStrings.filter(key => 
+      !orderedTargetKeys.includes(key)
+    );
+    
+    setOrderedTargetKeys([...existingKeys, ...newKeys]);
+  };
+
+  // Handle reordering in the activity form
+  const moveFormCandidateUp = (index: number) => {
+    if (index <= 0) return;
+    
+    const newOrderedKeys = [...orderedTargetKeys];
+    const temp = newOrderedKeys[index];
+    newOrderedKeys[index] = newOrderedKeys[index - 1];
+    newOrderedKeys[index - 1] = temp;
+    
+    setOrderedTargetKeys(newOrderedKeys);
+    
+    // Update form value with the new order
+    form.setFieldsValue({ 
+      candidate_ids: newOrderedKeys.map(id => parseInt(id, 10)) 
+    });
+  };
+  
+  const moveFormCandidateDown = (index: number) => {
+    if (index >= orderedTargetKeys.length - 1) return;
+    
+    const newOrderedKeys = [...orderedTargetKeys];
+    const temp = newOrderedKeys[index];
+    newOrderedKeys[index] = newOrderedKeys[index + 1];
+    newOrderedKeys[index + 1] = temp;
+    
+    setOrderedTargetKeys(newOrderedKeys);
+    
+    // Update form value with the new order
+    form.setFieldsValue({ 
+      candidate_ids: newOrderedKeys.map(id => parseInt(id, 10)) 
+    });
   };
 
   // 处理删除活动
@@ -395,24 +465,30 @@ export default function ActivitiesPage() {
     try {
       const values = await form.validateFields();
       
-      // 构建API请求数据格式
+      // Get candidate IDs in proper order if we're in edit mode
+      // and have ordered some candidates, otherwise use form values
+      const candidateIds = modalType === 'edit' && orderedTargetKeys.length > 0
+        ? orderedTargetKeys.map(id => parseInt(id, 10))
+        : values.candidate_ids;
+        
+      // Construct API request data format
       const activityData = {
         title: values.title,
         description: values.description,
         start_time: values.timeRange[0].format('YYYY-MM-DDTHH:mm:ss'),
         end_time: values.timeRange[1].format('YYYY-MM-DDTHH:mm:ss'),
         is_active: values.is_active,
-        candidate_ids: values.candidate_ids,
+        candidate_ids: candidateIds,
         max_votes: values.max_votes,
         min_votes: values.min_votes,
       };
       
       if (modalType === 'create') {
-        // 创建新活动
+        // Create new activity
         await createActivity(activityData);
         message.success('活动创建成功');
       } else if (currentActivity) {
-        // 更新现有活动
+        // Update existing activity
         await updateActivity(currentActivity.id, activityData);
         message.success('活动更新成功');
       }
@@ -432,35 +508,80 @@ export default function ActivitiesPage() {
   // 处理管理候选人
   const handleManageCandidates = (activity: ApiActivity) => {
     setSelectedActivity(activity);
-    // 初始化选中的候选人
-    setTargetKeys(activity.candidate_ids.map(id => id.toString()));
+    // Initialize selected candidates and preserve their order
+    const candidateIds = activity.candidate_ids.map(id => id.toString());
+    setTargetKeys(candidateIds);
+    setOrderedTargetKeys(candidateIds);
     setCandidatesModalVisible(true);
   };
 
-  // 处理候选人transfer变化
+  // Handle candidate transfer change
   const handleTransferChange = (newTargetKeys: React.Key[]) => {
     setTargetKeys(newTargetKeys.map(key => key.toString()));
+    
+    // Update ordered keys by:
+    // 1. Keeping existing ordered keys that are still in target keys
+    // 2. Adding new keys at the end
+    const existingKeys = orderedTargetKeys.filter(key => 
+      newTargetKeys.includes(key)
+    );
+    
+    const newKeys = newTargetKeys
+      .filter(key => !orderedTargetKeys.includes(key.toString()))
+      .map(key => key.toString());
+    
+    setOrderedTargetKeys([...existingKeys, ...newKeys]);
+  };
+  
+  // Move candidate up in order
+  const moveCandidateUp = (index: number) => {
+    if (index <= 0) return;
+    
+    const newOrderedKeys = [...orderedTargetKeys];
+    const temp = newOrderedKeys[index];
+    newOrderedKeys[index] = newOrderedKeys[index - 1];
+    newOrderedKeys[index - 1] = temp;
+    
+    setOrderedTargetKeys(newOrderedKeys);
+  };
+  
+  // Move candidate down in order
+  const moveCandidateDown = (index: number) => {
+    if (index >= orderedTargetKeys.length - 1) return;
+    
+    const newOrderedKeys = [...orderedTargetKeys];
+    const temp = newOrderedKeys[index];
+    newOrderedKeys[index] = newOrderedKeys[index + 1];
+    newOrderedKeys[index + 1] = temp;
+    
+    setOrderedTargetKeys(newOrderedKeys);
   };
 
-  // 保存候选人变更
+  // Save candidates with their order
   const handleSaveCandidates = async () => {
     if (!selectedActivity) return;
     
     try {
-      // 构建更新请求
+      // Use the ordered candidate IDs instead of targetKeys
       const updatedActivity = {
         ...selectedActivity,
-        candidate_ids: targetKeys.map(key => parseInt(key, 10)),
+        candidate_ids: orderedTargetKeys.map(key => parseInt(key, 10)),
       };
       
       await updateActivity(selectedActivity.id, updatedActivity);
-      message.success('候选人更新成功');
+      message.success('候选人顺序更新成功');
       setCandidatesModalVisible(false);
       fetchActivities();
     } catch (error) {
       message.error('更新候选人失败');
       console.error(error);
     }
+  };
+  
+  // Get candidate information by ID
+  const getCandidateById = (id: string) => {
+    const candidate = candidates.find(c => c.id.toString() === id);
+    return candidate || null;
   };
 
   return (
@@ -567,14 +688,54 @@ export default function ActivitiesPage() {
               placeholder="请选择候选人"
               style={{ width: '100%' }}
               optionFilterProp="children"
+              onChange={handleCandidateSelectionChange}
             >
               {candidates.map(candidate => (
                 <Option key={candidate.id} value={candidate.id}>
-                  {candidate.name} - {getCollegeNameById(collegeInfoList, candidate.college_id)}
+                  {candidate.name} - {getCollegeNameById(collegeInfoList, candidate.college_id.toString())}
                 </Option>
               ))}
             </Select>
           </Form.Item>
+          
+          {/* 候选人排序 */}
+          {orderedTargetKeys.length > 0 && (
+            <Form.Item label="候选人顺序" extra="可以调整候选人在投票界面中的显示顺序">
+              <Card size="small" bodyStyle={{ maxHeight: '300px', overflow: 'auto' }}>
+                <List
+                  size="small"
+                  dataSource={orderedTargetKeys}
+                  renderItem={(item, index) => {
+                    const candidate = getCandidateById(item);
+                    return (
+                      <List.Item
+                        actions={[
+                          <Button 
+                            type="text" 
+                            icon={<ArrowUpOutlined />} 
+                            disabled={index === 0}
+                            onClick={() => moveFormCandidateUp(index)}
+                          />,
+                          <Button 
+                            type="text" 
+                            icon={<ArrowDownOutlined />} 
+                            disabled={index === orderedTargetKeys.length - 1}
+                            onClick={() => moveFormCandidateDown(index)}
+                          />
+                        ]}
+                      >
+                        <div className="flex items-center">
+                          <span className="mr-2 text-gray-500">{index + 1}.</span>
+                          <span>{candidate?.name}</span>
+                          <span className="ml-2 text-gray-500">- {candidate?.college_id ? getCollegeNameById(collegeInfoList, candidate.college_id.toString()) : '未知学院'}</span>
+                        </div>
+                      </List.Item>
+                    );
+                  }}
+                />
+              </Card>
+            </Form.Item>
+          )}
           
           <Form.Item
             name="is_active"
@@ -596,32 +757,76 @@ export default function ActivitiesPage() {
         okText="保存"
         cancelText="取消"
       >
-        <p className="mb-4">选择要包含在活动中的候选人：</p>
-        <Transfer
-          dataSource={candidates.map(c => ({
-            key: c.id.toString(),
-            title: c.name,
-            description: getCollegeNameById(collegeInfoList, c.college_id) || '',
-            disabled: false,
-          }))}
-          titles={['可选候选人', '已选候选人']}
-          targetKeys={targetKeys}
-          onChange={handleTransferChange}
-          render={item => (
-            <div className="flex items-center gap-2">
-              <span className="font-medium">{item.title}</span>
-              <span className="text-gray-500">- {item.description}</span>
-            </div>
-          )}
-          listStyle={{
-            width: 350,
-            height: 400,
-          }}
-          showSearch
-          filterOption={(inputValue, item) =>
-            item.title.indexOf(inputValue) !== -1 || item.description.indexOf(inputValue) !== -1
-          }
-        />
+        <div className="mb-4">
+          <p>从上方选择要包含在活动中的候选人，下方可调整候选人顺序：</p>
+        </div>
+        <div className="flex flex-col space-y-4">
+          <div className="w-full">
+            <Transfer
+              dataSource={candidates.map(c => ({
+                key: c.id.toString(),
+                title: c.name,
+                description: getCollegeNameById(collegeInfoList, c.college_id) || '',
+                disabled: false,
+              }))}
+              titles={['可选候选人', '已选候选人']}
+              targetKeys={targetKeys}
+              onChange={handleTransferChange}
+              render={item => (
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{item.title}</span>
+                  <span className="text-gray-500">- {item.description}</span>
+                </div>
+              )}
+              listStyle={{
+                width: '100%',
+                height: 250,
+              }}
+              showSearch
+              filterOption={(inputValue, item) =>
+                item.title.indexOf(inputValue) !== -1 || item.description.indexOf(inputValue) !== -1
+              }
+            />
+          </div>
+          
+          <div className="w-full">
+            <Card title="候选人顺序" className="w-full">
+              <List
+                size="small"
+                bordered
+                dataSource={orderedTargetKeys}
+                renderItem={(item, index) => {
+                  const candidate = getCandidateById(item);
+                  return (
+                    <List.Item
+                      className="flex items-center"
+                      actions={[
+                        <Button 
+                          type="text" 
+                          icon={<ArrowUpOutlined />} 
+                          disabled={index === 0}
+                          onClick={() => moveCandidateUp(index)}
+                        />,
+                        <Button 
+                          type="text" 
+                          icon={<ArrowDownOutlined />} 
+                          disabled={index === orderedTargetKeys.length - 1}
+                          onClick={() => moveCandidateDown(index)}
+                        />
+                      ]}
+                    >
+                      <div className="flex items-center w-full">
+                        <span className="mr-2 text-gray-500">{index + 1}.</span>
+                        <span className="font-medium">{candidate?.name}</span>
+                        <span className="ml-2 text-gray-500">- {candidate?.college_id ? getCollegeNameById(collegeInfoList, candidate.college_id.toString()) : '未知学院'}</span>
+                      </div>
+                    </List.Item>
+                  );
+                }}
+              />
+            </Card>
+          </div>
+        </div>
       </Modal>
     </div>
   );
