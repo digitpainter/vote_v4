@@ -57,6 +57,15 @@ interface VoteRecord {
   voter_college_name: string;
 }
 
+// 候选人得票统计类型
+interface CandidateStats {
+  rank: number;
+  college_id?: string;
+  college_name: string;
+  candidate_name: string;
+  vote_count: number;
+}
+
 // 导出数据响应类型
 interface ExportResponse {
   activity: {
@@ -68,7 +77,7 @@ interface ExportResponse {
   export_type: string;
   data: {
     total_voters: number;
-    records: VoteRecord[];
+    records: VoteRecord[] | CandidateStats[];
   };
 }
 
@@ -84,10 +93,10 @@ interface StudentInfo {
 }
 
 // 导出格式类型
-type ExportFormat = 'excel' | 'pdf' | 'csv';
+type ExportFormat = 'excel' | 'csv';
 
 // 导出类型
-type ExportType = 'vote_records' | 'statistics' | 'candidates';
+type ExportType = 'vote_records' | 'candidate_stats';
 
 export default function DataPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -96,6 +105,7 @@ export default function DataPage() {
   const [exportFormat, setExportFormat] = useState<ExportFormat>('excel');
   const [exportType, setExportType] = useState<ExportType>('vote_records');
   const [voteRecords, setVoteRecords] = useState<VoteRecord[]>([]);
+  const [candidateStats, setCandidateStats] = useState<CandidateStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [previewLoading, setPreviewLoading] = useState(false);
   
@@ -161,6 +171,38 @@ export default function DataPage() {
     },
   ];
 
+  // 表格列定义 - 候选人得票统计
+  const candidateStatsColumns: TableColumnsType<CandidateStats> = [
+    {
+      title: '排名',
+      dataIndex: 'rank',
+      key: 'rank',
+      width: 80,
+      sorter: (a, b) => a.rank - b.rank,
+    },
+    {
+      title: '学院',
+      dataIndex: 'college_name',
+      key: 'college_name',
+      filters: colleges.filter(college => college.YXDM !== 'all').map(college => ({
+        text: college.YXDM_TEXT,
+        value: college.YXDM_TEXT,
+      })),
+      onFilter: (value, record) => record.college_name === value,
+    },
+    {
+      title: '候选人',
+      dataIndex: 'candidate_name',
+      key: 'candidate_name',
+    },
+    {
+      title: '得票数',
+      dataIndex: 'vote_count',
+      key: 'vote_count',
+      sorter: (a, b) => a.vote_count - b.vote_count,
+    },
+  ];
+
   // 预览数据
   const handlePreview = async () => {
     if (!selectedActivity) {
@@ -173,6 +215,7 @@ export default function DataPage() {
       // 准备请求参数
       const params = {
         activity_id: selectedActivity,
+        export_type: exportType,
         college_id: selectedCollege !== 'all' ? selectedCollege : undefined,
         start_date: dateRange ? dateRange[0].toISOString().split('T')[0] : undefined,
         end_date: dateRange ? dateRange[1].toISOString().split('T')[0] : undefined,
@@ -182,8 +225,21 @@ export default function DataPage() {
       const response = await axios.get('http://localhost:8000/vote/preview', { params });
       const { data } = response;
       
-      // 设置预览数据
-      setVoteRecords(data.data.records);
+      // 根据导出类型设置预览数据
+      if (exportType === 'vote_records') {
+        setVoteRecords(data.data.records as VoteRecord[]);
+      } else {
+        // 将候选人学院ID转换为学院名称
+        const candidateRecords = (data.data.records as Array<any>).map(record => {
+          // 查找对应的学院名称
+          const college = colleges.find(c => c.YXDM === record.college_id);
+          return {
+            ...record,
+            college_name: college ? college.YXDM_TEXT : record.college_id
+          };
+        });
+        setCandidateStats(candidateRecords as CandidateStats[]);
+      }
       setPreviewLoading(false);
     } catch (error) {
       console.error('获取预览数据失败:', error);
@@ -219,28 +275,54 @@ export default function DataPage() {
       // 根据导出格式处理数据
       if (exportFormat === 'excel' || exportFormat === 'csv') {
         // 准备Excel/CSV数据
-        const headers = ['学号', '学院'];
-        const rows = data.data.records.map((record: VoteRecord) => [
-          record.voter_id,
-          record.voter_college_name
-        ]);
+        let headers: string[];
+        let rows: any[];
+        
+        if (exportType === 'vote_records') {
+          headers = ['学号', '学院'];
+          rows = (data.data.records as VoteRecord[]).map(record => [
+            record.voter_id,
+            record.voter_college_name
+          ]);
+        } else {
+          headers = ['排名', '学院', '候选人', '得票数'];
+          rows = (data.data.records as Array<any>).map(record => {
+            // 查找对应的学院名称
+            const college = colleges.find(c => c.YXDM === record.college_id);
+            const collegeName = college ? college.YXDM_TEXT : record.college_id;
+            
+            return [
+              record.rank,
+              collegeName,
+              record.candidate_name,
+              record.vote_count
+            ];
+          });
+        }
         
         // 创建工作簿
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
         
         // 设置列宽
-        const colWidths = [
-          { wch: 15 }, // 学号列宽
-          { wch: 20 }  // 学院列宽
-        ];
+        const colWidths = exportType === 'vote_records' 
+          ? [
+              { wch: 15 }, // 学号列宽
+              { wch: 20 }  // 学院列宽
+            ]
+          : [
+              { wch: 8 },  // 排名列宽
+              { wch: 20 }, // 学院列宽
+              { wch: 15 }, // 候选人列宽
+              { wch: 10 }  // 得票数列宽
+            ];
         ws['!cols'] = colWidths;
         
         // 添加工作表到工作簿
-        XLSX.utils.book_append_sheet(wb, ws, '投票记录');
+        XLSX.utils.book_append_sheet(wb, ws, exportType === 'vote_records' ? '投票记录' : '候选人得票统计');
         
         // 生成文件名
-        const fileName = `投票记录_${data.activity.title}_${new Date().toISOString().split('T')[0]}.${exportFormat === 'excel' ? 'xlsx' : 'csv'}`;
+        const fileName = `${exportType === 'vote_records' ? '投票记录' : '候选人得票统计'}_${data.activity.title}_${new Date().toISOString().split('T')[0]}.${exportFormat === 'excel' ? 'xlsx' : 'csv'}`;
         
         // 导出文件
         XLSX.writeFile(wb, fileName);
@@ -276,7 +358,7 @@ export default function DataPage() {
         <Card className="mb-6 shadow-sm">
           <Alert
             message="数据导出说明"
-            description="导出的数据将包含所选活动的相关信息。如果选择了日期范围，则只会导出该时间范围内的数据。您可以按学院筛选数据，或选择导出全部学院的数据。"
+            description="您可以选择导出投票记录或候选人得票统计。如果选择了日期范围，则只会导出该时间范围内的数据。您可以按学院筛选数据，或选择导出全部学院的数据。"
             type="info"
             showIcon
             className="mb-6"
@@ -303,6 +385,23 @@ export default function DataPage() {
                     {activities.map(activity => (
                       <Option key={activity.id} value={activity.id}>{activity.title}</Option>
                     ))}
+                  </Select>
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <Text strong>导出类型</Text>
+                <Tooltip title="选择要导出的数据类型">
+                  <InfoCircleOutlined className="ml-1 text-gray-400" />
+                </Tooltip>
+                <div className="mt-2">
+                  <Select
+                    value={exportType}
+                    onChange={value => setExportType(value)}
+                    style={{ width: '100%' }}
+                  >
+                    <Option value="vote_records">投票记录</Option>
+                    <Option value="candidate_stats">候选人得票统计</Option>
                   </Select>
                 </div>
               </div>
@@ -352,27 +451,6 @@ export default function DataPage() {
               </div>
               
               <div className="mb-4">
-                <Text strong>导出数据类型</Text>
-                <div className="mt-2">
-                  <Select
-                    value={exportType}
-                    onChange={value => setExportType(value)}
-                    style={{ width: '100%' }}
-                  >
-                    <Option value="vote_records">
-                      <BarChartOutlined /> 投票记录
-                    </Option>
-                    <Option value="statistics">
-                      <PieChartOutlined /> 统计数据
-                    </Option>
-                    <Option value="candidates">
-                      <TeamOutlined /> 候选人信息
-                    </Option>
-                  </Select>
-                </div>
-              </div>
-              
-              <div className="mb-4">
                 <Text strong>导出格式</Text>
                 <div className="mt-2">
                   <Select
@@ -382,9 +460,6 @@ export default function DataPage() {
                   >
                     <Option value="excel">
                       <FileExcelOutlined className="text-green-600" /> Excel 文件 (.xlsx)
-                    </Option>
-                    <Option value="pdf">
-                      <FilePdfOutlined className="text-red-600" /> PDF 文件 (.pdf)
                     </Option>
                     <Option value="csv">
                       <FileTextOutlined className="text-blue-600" /> CSV 文件 (.csv)
@@ -422,15 +497,27 @@ export default function DataPage() {
               </div>
               <Divider />
               
-              <Table 
-                columns={voteRecordColumns} 
-                dataSource={voteRecords}
-                rowKey="voter_id"
-                size="small"
-                pagination={{ pageSize: 5 }}
-                loading={previewLoading}
-                scroll={{ x: 'max-content' }}
-              />
+              {exportType === 'vote_records' ? (
+                <Table 
+                  columns={voteRecordColumns} 
+                  dataSource={voteRecords}
+                  rowKey="voter_id"
+                  size="small"
+                  pagination={{ pageSize: 5 }}
+                  loading={previewLoading}
+                  scroll={{ x: 'max-content' }}
+                />
+              ) : (
+                <Table 
+                  columns={candidateStatsColumns} 
+                  dataSource={candidateStats}
+                  rowKey="rank"
+                  size="small"
+                  pagination={{ pageSize: 5 }}
+                  loading={previewLoading}
+                  scroll={{ x: 'max-content' }}
+                />
+              )}
               
               <div className="mt-4 text-gray-500 text-center">
                 <Text type="secondary">
@@ -441,20 +528,6 @@ export default function DataPage() {
           </div>
         </Card>
       )
-    },
-    {
-      key: 'analysis',
-      label: <span><BarChartOutlined /> 数据分析</span>,
-      children: (
-        <Card className="mb-6 shadow-sm p-6">
-          <div className="text-center py-12">
-            <Title level={3} type="secondary">数据分析功能即将上线</Title>
-            <Paragraph>
-              敬请期待更多高级数据分析功能，包括投票趋势分析、票数分布统计、学院参与度分析等。
-            </Paragraph>
-          </div>
-        </Card>
-      )
     }
   ];
 
@@ -462,7 +535,7 @@ export default function DataPage() {
     <div>
       <Title level={2}>数据下载</Title>
       <Paragraph className="mb-6">
-        您可以在此页面下载投票系统的各类数据报表，包括投票记录、统计数据和候选人信息。
+        您可以在此页面下载投票系统的投票记录数据。
       </Paragraph>
       
       <Tabs defaultActiveKey="export" className="mb-6" items={tabItems} />

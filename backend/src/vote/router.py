@@ -206,7 +206,7 @@ def remove_candidate_from_activity(
 @router.get("/export")
 async def export_data(
     activity_id: int,
-    export_type: str = "vote_records",
+    export_type: str = Query(..., description="Type of data to export", example="vote_records or candidate_stats"),
     college_id: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -217,7 +217,7 @@ async def export_data(
     
     Args:
         activity_id: ID of the activity
-        export_type: Type of data to export ('vote_records', 'statistics', 'candidates')
+        export_type: Type of data to export ('vote_records' or 'candidate_stats')
         college_id: Optional college ID to filter data
         start_date: Optional start date for date range (YYYY-MM-DD)
         end_date: Optional end date for date range (YYYY-MM-DD)
@@ -231,12 +231,10 @@ async def export_data(
         # Get export data based on type
         if export_type == 'vote_records':
             data = await VoteService.get_vote_records(db, activity_id, college_id, start_date, end_date)
-        elif export_type == 'statistics':
-            data = VoteService.get_vote_statistics(db, activity_id, college_id)
-        elif export_type == 'candidates':
-            data = VoteService.get_candidates_for_export(db, activity_id, college_id)
+        elif export_type == 'candidate_stats':
+            data = await VoteService.get_candidate_stats(db, activity_id, college_id, start_date, end_date)
         else:
-            raise HTTPException(status_code=400, detail="不支持的导出类型")
+            raise HTTPException(status_code=400, detail=f"不支持的导出类型: {export_type}，支持的类型为: vote_records, candidate_stats")
         
         return {
             "activity": {
@@ -250,11 +248,12 @@ async def export_data(
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"获取数据失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"导出数据时发生错误: {str(e)}")
 
 @router.get("/preview")
 async def preview_data(
     activity_id: int,
+    export_type: str = Query("vote_records", description="Type of data to preview", example="vote_records or candidate_stats"),
     college_id: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -266,6 +265,7 @@ async def preview_data(
     
     Args:
         activity_id: ID of the activity
+        export_type: Type of data to preview ('vote_records' or 'candidate_stats')
         college_id: Optional college ID to filter data
         start_date: Optional start date for date range (YYYY-MM-DD)
         end_date: Optional end date for date range (YYYY-MM-DD)
@@ -277,8 +277,16 @@ async def preview_data(
         if not activity:
             raise HTTPException(status_code=404, detail="活动不存在")
         
-        # Get preview data (limited vote records)
-        data = await VoteService.get_vote_records(db, activity_id, college_id, start_date, end_date, limit=limit)
+        # Get preview data based on type
+        if export_type == 'vote_records':
+            data = await VoteService.get_vote_records(db, activity_id, college_id, start_date, end_date, limit=limit)
+        elif export_type == 'candidate_stats':
+            data = await VoteService.get_candidate_stats(db, activity_id, college_id, start_date, end_date)
+            # Limit records for preview if needed
+            if data and 'records' in data and len(data['records']) > limit:
+                data['records'] = data['records'][:limit]
+        else:
+            raise HTTPException(status_code=400, detail=f"不支持的预览类型: {export_type}，支持的类型为: vote_records, candidate_stats")
         
         return {
             "activity": {
@@ -287,6 +295,7 @@ async def preview_data(
                 "start_time": activity.start_time,
                 "end_time": activity.end_time
             },
+            "export_type": export_type,
             "data": data
         }
         

@@ -28,3 +28,32 @@ MySQL database configuration:
 - Username: root
 - Password: 123456
 - Database: vote_db
+
+## API Endpoints
+
+### Data Export API
+
+The application supports exporting data in different formats:
+
+#### GET `/vote/export`
+
+Parameters:
+- `activity_id` (int): ID of the activity to export data from
+- `export_type` (string): Type of data to export
+  - `vote_records`: Export vote records
+  - `statistics`: Export statistical data
+  - `candidates`: Export candidate information
+- `format` (string): Export file format
+  - `excel`: Export as Excel (.xlsx)
+  - `csv`: Export as CSV
+  - `pdf`: Export as PDF
+- `college_id` (string, optional): Filter by college ID
+- `start_date` (string, optional): Filter by start date (YYYY-MM-DD)
+- `end_date` (string, optional): Filter by end date (YYYY-MM-DD)
+
+Example:
+```
+GET /vote/export?activity_id=1&export_type=vote_records&format=excel
+```
+
+This will download an Excel file with vote records for activity ID 1.

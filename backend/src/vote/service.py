@@ -685,3 +685,83 @@ class VoteService:
         statistics["college_participation"] = list(college_votes.values())
         
         return statistics
+
+    @staticmethod
+    async def get_candidate_stats(db: Session, activity_id: int, college_id: Optional[str] = None, 
+                         start_date: Optional[str] = None, end_date: Optional[str] = None):
+        """
+        获取候选人得票统计数据
+        
+        Args:
+            db: 数据库会话
+            activity_id: 活动ID
+            college_id: 可选的学院ID，用于筛选
+            start_date: 可选的开始日期，格式YYYY-MM-DD
+            end_date: 可选的结束日期，格式YYYY-MM-DD
+            
+        Returns:
+            包含总人数和候选人得票记录的字典
+        """
+        # 基础查询：获取每个候选人的得票数
+        query = db.query(
+            Candidate.id,
+            Candidate.name,
+            Candidate.college_id,
+            func.count(Vote.id).label('vote_count')
+        ).join(
+            Vote, Vote.candidate_id == Candidate.id
+        ).filter(
+            Vote.activity_id == activity_id
+        )
+        
+        # 应用学院筛选（如果提供了学院ID）
+        if college_id and college_id != 'all':
+            query = query.filter(Candidate.college_id == college_id)
+        
+        # 应用日期范围筛选
+        if start_date:
+            start_datetime = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
+            query = query.filter(Vote.created_at >= start_datetime)
+        
+        if end_date:
+            end_datetime = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+            query = query.filter(Vote.created_at <= end_datetime)
+        
+        # 按候选人分组并按得票数降序排序
+        query = query.group_by(
+            Candidate.id,
+            Candidate.name,
+            Candidate.college_id
+        ).order_by(desc('vote_count'))
+        
+        # 执行查询
+        results = query.all()
+        
+        # 格式化结果并添加排名
+        formatted_records = []
+        for rank, (candidate_id, candidate_name, college_id, vote_count) in enumerate(results, 1):
+            record = {
+                "rank": rank,
+                "college_id": college_id,
+                "candidate_name": candidate_name,
+                "vote_count": vote_count
+            }
+            formatted_records.append(record)
+        
+        # 获取该活动的总投票人数（去重）
+        total_voters = db.query(func.count(func.distinct(Vote.voter_id))).filter(
+            Vote.activity_id == activity_id
+        ).scalar() or 0
+        
+        # 应用日期筛选到投票人数统计
+        voter_query = db.query(func.distinct(Vote.voter_id)).filter(Vote.activity_id == activity_id)
+        if start_date:
+            voter_query = voter_query.filter(Vote.created_at >= start_datetime)
+        if end_date:
+            voter_query = voter_query.filter(Vote.created_at <= end_datetime)
+        total_voters = voter_query.count()
+        
+        return {
+            "total_voters": total_voters,
+            "records": formatted_records
+        }
