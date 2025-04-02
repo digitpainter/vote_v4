@@ -37,6 +37,7 @@ class ActivityCandidateAssociation(Base):
 
     activity_id: Mapped[int] = mapped_column(ForeignKey("vote_activities.id", ondelete='CASCADE'), primary_key=True)
     candidate_id: Mapped[int] = mapped_column(ForeignKey("candidates.id", ondelete='CASCADE'), primary_key=True)
+    position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     activity: Mapped["VoteActivity"] = relationship(back_populates="associations")

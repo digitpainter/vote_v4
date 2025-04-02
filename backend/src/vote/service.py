@@ -128,10 +128,13 @@ class VoteService:
             db.flush()
             if activity.is_active:
                 VoteActivity.deactivate_others(db, exclude_id=db_activity.id)
-            for candidate_id in activity.candidate_ids:
+            
+            # Add candidate associations with position information
+            for position, candidate_id in enumerate(activity.candidate_ids):
                 association = ActivityCandidateAssociation(
                     activity_id=db_activity.id,
-                    candidate_id=candidate_id
+                    candidate_id=candidate_id,
+                    position=position  # Store the position
                 )
                 db.add(association)
             db.commit()
@@ -153,8 +156,14 @@ class VoteService:
 
     @staticmethod
     def get_activities(db: Session):
-        return [
-            {
+        activities = []
+        for activity in db.query(VoteActivity).all():
+            # Get associations sorted by position
+            associations = db.query(ActivityCandidateAssociation).filter(
+                ActivityCandidateAssociation.activity_id == activity.id
+            ).order_by(ActivityCandidateAssociation.position).all()
+            
+            activities.append({
                 "id": activity.id,
                 "title": activity.title,
                 "description": activity.description,
@@ -163,15 +172,20 @@ class VoteService:
                 "is_active": activity.is_active,
                 "max_votes": activity.max_votes,
                 "min_votes": activity.min_votes,
-                "candidate_ids": [assoc.candidate_id for assoc in activity.associations]
-            }
-            for activity in db.query(VoteActivity).all()
-        ]
+                "candidate_ids": [assoc.candidate_id for assoc in associations]
+            })
+        return activities
 
     @staticmethod
     def get_active_activities(db: Session):
-        return [
-            {
+        activities = []
+        for activity in db.query(VoteActivity).filter(VoteActivity.is_active == True).all():
+            # Get associations sorted by position
+            associations = db.query(ActivityCandidateAssociation).filter(
+                ActivityCandidateAssociation.activity_id == activity.id
+            ).order_by(ActivityCandidateAssociation.position).all()
+            
+            activities.append({
                 "id": activity.id,
                 "title": activity.title,
                 "description": activity.description,
@@ -180,10 +194,9 @@ class VoteService:
                 "is_active": activity.is_active,
                 "max_votes": activity.max_votes,
                 "min_votes": activity.min_votes,
-                "candidate_ids": [assoc.candidate_id for assoc in activity.associations]
-            }
-            for activity in db.query(VoteActivity).filter(VoteActivity.is_active == True).all()
-        ]
+                "candidate_ids": [assoc.candidate_id for assoc in associations]
+            })
+        return activities
 
     @staticmethod
     def update_activity(db: Session, activity_id: int, activity: ActivityCreate):
@@ -197,11 +210,12 @@ class VoteService:
                 ActivityCandidateAssociation.activity_id == activity_id
             ).delete()
 
-            # Add new associations
-            for candidate_id in activity.candidate_ids:
+            # Add new associations with position information
+            for position, candidate_id in enumerate(activity.candidate_ids):
                 association = ActivityCandidateAssociation(
                     activity_id=activity_id,
-                    candidate_id=candidate_id
+                    candidate_id=candidate_id,
+                    position=position  # Store the position
                 )
                 db.add(association)
 
@@ -216,6 +230,12 @@ class VoteService:
                 VoteActivity.deactivate_others(db, exclude_id=activity_id)
             db.commit()
             db.refresh(db_activity)
+            
+            # Get associations sorted by position for response
+            associations = db.query(ActivityCandidateAssociation).filter(
+                ActivityCandidateAssociation.activity_id == activity_id
+            ).order_by(ActivityCandidateAssociation.position).all()
+            
             return {
                 "id": db_activity.id,
                 "title": db_activity.title,
@@ -225,7 +245,7 @@ class VoteService:
                 "is_active": db_activity.is_active,
                 "max_votes": db_activity.max_votes,
                 "min_votes": db_activity.min_votes,
-                "candidate_ids": [assoc.candidate_id for assoc in db_activity.associations]
+                "candidate_ids": [assoc.candidate_id for assoc in associations]
             }
         except ValueError as e:
             VoteService.logger.error(f"Validation error: {str(e)}")
