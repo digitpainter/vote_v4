@@ -507,16 +507,16 @@ export default function CandidatesPage() {
     const isImage = file.type.startsWith('image/');
     if (!isImage) {
       message.error('只能上传图片文件!');
-      return false;
+      return Upload.LIST_IGNORE;
     }
     
     // 检查文件大小
     const isLt2M = file.size / 1024 / 1024 < 2;
     if (!isLt2M) {
       message.error('图片大小不能超过2MB!');
-      return false;
+      return Upload.LIST_IGNORE;
     }
-    
+
     // 执行上传操作
     handleUpload(file);
     return false; // 阻止自动上传
