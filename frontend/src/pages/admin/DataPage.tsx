@@ -27,6 +27,8 @@ import {
 import type { TableColumnsType } from 'antd';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -273,8 +275,156 @@ export default function DataPage() {
       const { data } = response;
       
       // 根据导出格式处理数据
-      if (exportFormat === 'excel' || exportFormat === 'csv') {
-        // 准备Excel/CSV数据
+      if (exportFormat === 'excel') {
+        // 使用ExcelJS创建漂亮的Excel文件
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = '投票系统';
+        workbook.lastModifiedBy = '投票系统';
+        workbook.created = new Date();
+        workbook.modified = new Date();
+        
+        // 创建工作表
+        const worksheet = workbook.addWorksheet(exportType === 'vote_records' ? '投票记录' : '候选人得票统计');
+        
+        // 找到当前选中的活动
+        const activity = activities.find(act => act.id === selectedActivity);
+        
+        // 添加标题行
+        if (activity) {
+          // 标题行
+          const titleRow = worksheet.addRow([`${activity.title} - ${exportType === 'vote_records' ? '投票记录' : '候选人得票统计'}`]);
+          titleRow.height = 30;
+          titleRow.font = { size: 16, bold: true };
+          titleRow.alignment = { vertical: 'middle', horizontal: 'center' };
+          
+          // 合并标题单元格
+          let headers = [];
+          if (exportType === 'vote_records') {
+            headers = ['学号', '学院'];
+            worksheet.mergeCells('A1:B1');
+          } else {
+            headers = ['排名', '学院', '候选人', '得票数'];
+            worksheet.mergeCells('A1:D1');
+          }
+          
+          // 导出时间行
+          const dateRow = worksheet.addRow([`导出时间: ${new Date().toLocaleString()}`]);
+          dateRow.font = { size: 10, italic: true, color: { argb: '666666' } };
+          dateRow.alignment = { horizontal: 'center' };
+          
+          if (exportType === 'vote_records') {
+            worksheet.mergeCells('A2:B2');
+          } else {
+            worksheet.mergeCells('A2:D2');
+          }
+          
+          // 空行
+          worksheet.addRow([]);
+        }
+        
+        // 添加表头
+        let headers = [];
+        if (exportType === 'vote_records') {
+          headers = ['学号', '学院'];
+        } else {
+          headers = ['排名', '学院', '候选人', '得票数'];
+        }
+        
+        const headerRow = worksheet.addRow(headers);
+        headerRow.eachCell((cell: ExcelJS.Cell) => {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: '4472C4' }
+          };
+          cell.font = {
+            bold: true,
+            color: { argb: 'FFFFFF' },
+            size: 12
+          };
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        });
+        headerRow.height = 25;
+        
+        // 设置列宽
+        if (exportType === 'vote_records') {
+          worksheet.getColumn(1).width = 20; // 学号列宽
+          worksheet.getColumn(2).width = 30; // 学院列宽
+        } else {
+          worksheet.getColumn(1).width = 10; // 排名列宽
+          worksheet.getColumn(2).width = 30; // 学院列宽
+          worksheet.getColumn(3).width = 20; // 候选人列宽
+          worksheet.getColumn(4).width = 15; // 得票数列宽
+        }
+        
+        // 添加数据行
+        let rowData = [];
+        if (exportType === 'vote_records') {
+          rowData = (data.data.records as VoteRecord[]).map(record => [
+            record.voter_id,
+            record.voter_college_name
+          ]);
+        } else {
+          rowData = (data.data.records as Array<any>).map(record => {
+            // 查找对应的学院名称
+            const college = colleges.find(c => c.YXDM === record.college_id);
+            const collegeName = college ? college.YXDM_TEXT : record.college_id;
+            
+            return [
+              record.rank,
+              collegeName,
+              record.candidate_name,
+              record.vote_count
+            ];
+          });
+        }
+        
+        // 添加数据并设置样式
+        rowData.forEach((row, index) => {
+          const excelRow = worksheet.addRow(row);
+          
+          // 设置交替行背景色
+          const bgColor = index % 2 === 0 ? 'FFFFFF' : 'F2F2F2';
+          
+          excelRow.eachCell((cell: ExcelJS.Cell) => {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: bgColor }
+            };
+            cell.border = {
+              top: { style: 'thin' },
+              left: { style: 'thin' },
+              bottom: { style: 'thin' },
+              right: { style: 'thin' }
+            };
+            
+            // 如果是数字列，设置为右对齐
+            if (exportType === 'candidate_stats') {
+              const colNumber = (cell as any).col;
+              if (colNumber === 1 || colNumber === 4) { // 排名和得票数列
+                cell.alignment = { horizontal: 'right' };
+              } else {
+                cell.alignment = { horizontal: 'left' };
+              }
+            } else {
+              cell.alignment = { horizontal: 'left' };
+            }
+          });
+        });
+        
+        // 生成并保存文件
+        const buffer = await workbook.xlsx.writeBuffer();
+        const fileName = `${exportType === 'vote_records' ? '投票记录' : '候选人得票统计'}_${activity?.title || 'export'}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        saveAs(new Blob([buffer]), fileName);
+      } else if (exportFormat === 'csv') {
+        // CSV导出使用原有逻辑
         let headers: string[];
         let rows: any[];
         
@@ -304,25 +454,11 @@ export default function DataPage() {
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
         
-        // 设置列宽
-        const colWidths = exportType === 'vote_records' 
-          ? [
-              { wch: 15 }, // 学号列宽
-              { wch: 20 }  // 学院列宽
-            ]
-          : [
-              { wch: 8 },  // 排名列宽
-              { wch: 20 }, // 学院列宽
-              { wch: 15 }, // 候选人列宽
-              { wch: 10 }  // 得票数列宽
-            ];
-        ws['!cols'] = colWidths;
-        
         // 添加工作表到工作簿
         XLSX.utils.book_append_sheet(wb, ws, exportType === 'vote_records' ? '投票记录' : '候选人得票统计');
         
         // 生成文件名
-        const fileName = `${exportType === 'vote_records' ? '投票记录' : '候选人得票统计'}_${data.activity.title}_${new Date().toISOString().split('T')[0]}.${exportFormat === 'excel' ? 'xlsx' : 'csv'}`;
+        const fileName = `${exportType === 'vote_records' ? '投票记录' : '候选人得票统计'}_${data.activity.title}_${new Date().toISOString().split('T')[0]}.csv`;
         
         // 导出文件
         XLSX.writeFile(wb, fileName);
