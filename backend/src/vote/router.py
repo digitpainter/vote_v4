@@ -10,7 +10,7 @@ from pathlib import Path
 from datetime import datetime
 import uuid
 
-from .schemas import CandidateCreate, CandidateResponse, VoteRecord, ActivityCreate, ActivityResponse, ActiveVoteStatistics, VoteTrendResponse
+from .schemas import CandidateCreate, CandidateResponse, VoteRecord, ActivityCreate, ActivityResponse, ActiveVoteStatistics, VoteTrendResponse, TotalVoteStats
 from .service import VoteService
 from ..database import get_db
 from ..auth.dependencies import check_roles
@@ -188,6 +188,14 @@ def get_my_activity_votes(
 def get_vote_trends(db: Session = Depends(get_db)):
     """获取投票趋势数据，包括每日投票总数和各候选人投票数"""
     return VoteService.get_vote_trends(db)
+
+@router.get("/statistics/total", response_model=TotalVoteStats)
+def get_total_vote_statistics(
+    db: Session = Depends(get_db),
+    _= check_roles(allowed_admin_types=["school"])
+):
+    """获取所有活动的总投票统计数据，包括总投票数、总活动数和总候选人数"""
+    return VoteService.get_total_votes_count(db)
 
 @router.delete("/activities/{activity_id}/candidates/{candidate_id}")
 def remove_candidate_from_activity(

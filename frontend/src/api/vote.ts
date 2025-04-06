@@ -9,7 +9,6 @@ export async function getAllActivities() {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
       },
-      credentials: 'include',
       mode: 'cors'
     });
 

@@ -785,3 +785,53 @@ class VoteService:
             "total_voters": total_voters,
             "records": formatted_records
         }
+
+    @staticmethod
+    def get_total_votes_count(db: Session):
+        """
+        获取所有活动的总投票数
+        
+        Args:
+            db: 数据库会话
+            
+        Returns:
+            包含总投票数、总活动数和总候选人数的字典
+        """
+        # 获取总投票数
+        total_votes = db.query(func.count(Vote.id)).scalar() or 0
+        
+        # 获取总活动数
+        total_activities = db.query(func.count(VoteActivity.id)).scalar() or 0
+        
+        # 获取总候选人数
+        total_candidates = db.query(func.count(Candidate.id)).scalar() or 0
+        
+        # 获取各活动的投票数
+        activity_votes = db.query(
+            VoteActivity.id,
+            VoteActivity.title,
+            VoteActivity.is_active,
+            func.count(Vote.id).label('vote_count')
+        ).outerjoin(
+            Vote, Vote.activity_id == VoteActivity.id
+        ).group_by(
+            VoteActivity.id,
+            VoteActivity.title
+        ).all()
+        
+        # 格式化活动投票数据
+        activities_data = []
+        for activity_id, activity_title, is_active, vote_count in activity_votes:
+            activities_data.append({
+                "activity_id": activity_id,
+                "activity_title": activity_title,
+                "vote_count": vote_count,
+                "is_active": is_active
+            }) 
+        
+        return {
+            "total_votes": total_votes,
+            "total_activities": total_activities,
+            "total_candidates": total_candidates,
+            "activities": activities_data
+        }

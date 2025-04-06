@@ -45,7 +45,13 @@ export function ActivityProvider({children}: { children: ReactNode }) {
 
       const candidatesData = await response.json();
       console.debug(`[API Data][${new Date().toLocaleString()}] Received ${candidatesData.length} candidates`);
-      return candidatesData;
+      
+      // 根据candidateIds的顺序重新排列candidatesData
+      const orderedCandidatesData = candidateIds.map(id => {
+        return candidatesData.find((candidate: any) => candidate.id.toString() === id.toString());
+      }).filter(Boolean);
+      
+      return orderedCandidatesData;
     } catch (error) {
       console.error('[API Error] Candidate fetch error:', error);
       throw error;

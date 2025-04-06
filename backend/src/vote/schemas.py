@@ -100,3 +100,15 @@ class VoteRecordExport(BaseModel):
 
     class Config:
         orm_mode = True
+
+class ActivityVoteCount(BaseModel):
+    activity_id: int
+    activity_title: str
+    is_active: bool
+    vote_count: int
+    
+class TotalVoteStats(BaseModel):
+    total_votes: int
+    total_activities: int
+    total_candidates: int
+    activities: List[ActivityVoteCount]

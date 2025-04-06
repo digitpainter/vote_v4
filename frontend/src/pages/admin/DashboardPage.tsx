@@ -6,7 +6,7 @@ import {
   RiseOutlined, 
   ClockCircleOutlined 
 } from '@ant-design/icons';
-import type { TableColumnsType } from 'antd';
+import axios from 'axios';
 
 const { Title, Text } = Typography;
 
@@ -27,8 +27,21 @@ interface RecentActivity {
   description: string;
 }
 
+// 定义API响应类型
+interface TotalStatsResponse {
+  total_votes: number;
+  total_activities: number;
+  total_candidates: number;
+  activities: Array<{
+    activity_id: number;
+    activity_title: string;
+    is_active: boolean;
+    vote_count: number;
+  }>;
+}
+
 export default function DashboardPage() {
-  // 模拟数据
+  // 初始化统计数据
   const [stats, setStats] = useState<DashboardStats>({
     totalActivities: 0,
     totalCandidates: 0,
@@ -39,57 +52,89 @@ export default function DashboardPage() {
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 模拟API获取数据
-  useEffect(() => {
-    // 这里应该是实际的API请求
-    setTimeout(() => {
+  // 获取统计数据
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get<TotalStatsResponse>(
+        'http://localhost:8000/vote/statistics/total',
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          withCredentials: true
+        }
+      );
+      
+      const data = response.data;
+      
+      // 计算活动中的活动数量
+      const activeActivitiesCount = data.activities.filter(activity => activity.is_active).length;
+      
       setStats({
-        totalActivities: 12,
-        totalCandidates: 68,
-        totalVotes: 4328,
-        activeActivities: 3
+        totalActivities: data.total_activities,
+        totalCandidates: data.total_candidates,
+        totalVotes: data.total_votes,
+        activeActivities: activeActivitiesCount
       });
       
-      setRecentActivities([
-        { 
-          id: '1', 
-          name: '管理员', 
-          type: 'create', 
-          time: '2024-03-29 14:32:45', 
-          description: '创建了新活动【2024学生会选举】' 
-        },
-        { 
-          id: '2', 
-          name: '张三', 
-          type: 'vote', 
-          time: '2024-03-29 13:15:22', 
-          description: '在【2024学生会选举】中投票' 
-        },
-        { 
-          id: '3', 
-          name: '管理员', 
-          type: 'update', 
-          time: '2024-03-28 10:05:13', 
-          description: '更新了活动【2024学生会选举】信息' 
-        },
-        { 
-          id: '4', 
-          name: '李四', 
-          type: 'vote', 
-          time: '2024-03-27 16:42:01', 
-          description: '在【2024学生会选举】中投票' 
-        },
-        { 
-          id: '5', 
-          name: '管理员', 
-          type: 'delete', 
-          time: '2024-03-26 09:30:56', 
-          description: '删除了候选人【王五】' 
-        }
-      ]);
-      
       setLoading(false);
-    }, 1000);
+    } catch (error) {
+      console.error('获取统计数据失败:', error);
+      setLoading(false);
+    }
+  };
+
+  // 加载模拟的最近活动数据
+  const loadRecentActivities = () => {
+    // 这里仍使用模拟数据，实际项目中可替换为API调用
+    setRecentActivities([
+      { 
+        id: '1', 
+        name: '管理员', 
+        type: 'create', 
+        time: '2024-03-29 14:32:45', 
+        description: '创建了新活动【2024学生会选举】' 
+      },
+      { 
+        id: '2', 
+        name: '张三', 
+        type: 'vote', 
+        time: '2024-03-29 13:15:22', 
+        description: '在【2024学生会选举】中投票' 
+      },
+      { 
+        id: '3', 
+        name: '管理员', 
+        type: 'update', 
+        time: '2024-03-28 10:05:13', 
+        description: '更新了活动【2024学生会选举】信息' 
+      },
+      { 
+        id: '4', 
+        name: '李四', 
+        type: 'vote', 
+        time: '2024-03-27 16:42:01', 
+        description: '在【2024学生会选举】中投票' 
+      },
+      { 
+        id: '5', 
+        name: '管理员', 
+        type: 'delete', 
+        time: '2024-03-26 09:30:56', 
+        description: '删除了候选人【王五】' 
+      }
+    ]);
+  };
+
+  // 页面加载时获取数据
+  useEffect(() => {
+    // 获取实际统计数据
+    fetchStats();
+    
+    // 加载模拟的最近活动数据
+    loadRecentActivities();
   }, []);
 
   // 获取图标颜色
