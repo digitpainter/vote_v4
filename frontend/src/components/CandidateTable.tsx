@@ -11,13 +11,15 @@ import { getAllCollegeInfo, CollegeInfo, getCollegeNameById } from '../api/colle
 type CandidateTableProps = {
   candidates: Candidate[];
   activity: Activity;
+  onVoteSubmitted?: () => void;
 };
 
 export function CandidateTable({
   candidates,
   activity,
+  onVoteSubmitted,
 }: CandidateTableProps) {
-  const { maxVotes, minVotes } = useActivity();
+  const { maxVotes, minVotes, refreshCandidates } = useActivity();
   const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([]);
   const [hasVoted, setHasVoted] = useState(false);
   const [votedCandidates, setVotedCandidates] = useState<number[]>([]);
@@ -52,6 +54,7 @@ export function CandidateTable({
     };
     checkStatus();
   }, [activity.id]);
+  
   const [expandedRowKey, setExpandedRowKey] = useState<Key | null>(null);
   return (
     <Table
@@ -148,6 +151,16 @@ export function CandidateTable({
                   await submitVotes(activity.id, selectedRowKeys as string[]);
                   message.success('投票成功');
                   setHasVoted(true);
+                  
+                  // Refresh candidate data
+                  if (activity.candidate_ids.length > 0) {
+                    await refreshCandidates(activity.candidate_ids.map(id => id.toString()));
+                  }
+                  
+                  // Call the callback to notify parent component
+                  if (onVoteSubmitted) {
+                    onVoteSubmitted();
+                  }
                 } catch (error) {
                   message.error('投票失败，请稍后重试');
                   console.error(error);

@@ -4,15 +4,20 @@ import { Card, Row, Col, Image, Typography } from 'antd';
 import { BASE64_PLACEHOLDER } from '../constants/images'
 import { useState, useEffect } from 'react';
 import { getAllCollegeInfo, CollegeInfo, getCollegeNameById } from '../api/college';
+import { useActivity } from '../contexts/ActivityContext';
 
 type CandidateGridProps = {
   activity: Activity;
   candidates: Candidate[];
+  refreshTrigger?: number; // Optional prop to trigger refresh
 };
 
-export function CandidateGrid({ activity, candidates }: CandidateGridProps) {
+export function CandidateGrid({ activity, candidates: initialCandidates, refreshTrigger = 0 }: CandidateGridProps) {
   const [collegeInfoList, setCollegeInfoList] = useState<CollegeInfo[]>([]);
+  const [candidates, setCandidates] = useState<Candidate[]>(initialCandidates);
+  const { refreshCandidates } = useActivity();
 
+  // Fetch college info on mount
   useEffect(() => {
     const fetchCollegeInfo = async () => {
       try {
@@ -24,6 +29,28 @@ export function CandidateGrid({ activity, candidates }: CandidateGridProps) {
     };
     fetchCollegeInfo();
   }, []);
+
+  // Update candidates when initialCandidates or refreshTrigger changes
+  useEffect(() => {
+    setCandidates(initialCandidates);
+  }, [initialCandidates]);
+
+  // Refresh candidates data when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      const refreshCandidateData = async () => {
+        try {
+          if (activity.candidate_ids.length > 0) {
+            const updatedCandidates = await refreshCandidates(activity.candidate_ids.map(id => id.toString()));
+            setCandidates(updatedCandidates);
+          }
+        } catch (error) {
+          console.error('刷新候选人数据失败:', error);
+        }
+      };
+      refreshCandidateData();
+    }
+  }, [refreshTrigger, activity.candidate_ids, refreshCandidates]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 gap-y-4">

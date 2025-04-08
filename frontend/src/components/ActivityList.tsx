@@ -21,11 +21,17 @@ export function IconRow({icon, label, value}: { icon: string; label: string; val
 
 export function ActivityList() {
   const {activeActivities, candidates, loading, error} = useActivity();
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   if (loading) return (
     <Spin tip="Loading..." size="large" fullscreen/>
   );
   if (error) return <Alert message="Error" description={error} type="error" showIcon/>;
+
+  const handleVoteSubmitted = () => {
+    // Increment the refresh trigger to cause the grid to update
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   return (
     <div className="px-4 md:px-24">
@@ -56,12 +62,17 @@ export function ActivityList() {
             key={activity.id}
             style={{marginBottom: '24px'}}
           >
-            <CandidateGrid activity={activity} candidates={candidates} />
+            <CandidateGrid 
+              activity={activity} 
+              candidates={candidates} 
+              refreshTrigger={refreshTrigger}
+            />
           </div>
           <div className="mt-8">
             <CandidateTable
               candidates={candidates}
               activity={activity}
+              onVoteSubmitted={handleVoteSubmitted}
             />
           </div>
         </div>
