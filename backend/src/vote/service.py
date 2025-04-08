@@ -28,27 +28,37 @@ class VoteService:
 
     @staticmethod
     def get_activity_vote_statistics(db: Session, activity_id: int):
-        results = db.query(
+        # 获取活动中的所有候选人
+        activity_candidates = db.query(Candidate).join(
+            ActivityCandidateAssociation, ActivityCandidateAssociation.candidate_id == Candidate.id
+        ).filter(
+            ActivityCandidateAssociation.activity_id == activity_id
+        ).all()
+
+        # 获取有投票记录的候选人统计
+        vote_stats = db.query(
             Vote.candidate_id,
-            Candidate.name,
-            Candidate.college_id,
             func.count(Vote.id).label('vote_count')
-        ).join(
-            Candidate, Vote.candidate_id == Candidate.id
         ).filter(
             Vote.activity_id == activity_id
         ).group_by(
-            Vote.candidate_id, Candidate.name, Candidate.college_id
+            Vote.candidate_id
         ).all()
 
-        return [
-            {
-                'candidate_id': r[0],
-                'name': r[1],
-                'college_id': r[2],
-                'vote_count': r[3]
-            } for r in results
-        ]
+        # 将投票统计转换为字典，方便查找
+        vote_dict = {candidate_id: count for candidate_id, count in vote_stats}
+
+        # 构建结果列表，确保包含所有候选人
+        results = []
+        for candidate in activity_candidates:
+            results.append({
+                'candidate_id': candidate.id,
+                'name': candidate.name,
+                'college_id': candidate.college_id,
+                'vote_count': vote_dict.get(candidate.id, 0)  # 如果没有投票记录，返回0
+            })
+
+        return results
 
     @staticmethod
     def create_candidate(db: Session, candidate: CandidateCreate):

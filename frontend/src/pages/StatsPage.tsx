@@ -7,6 +7,7 @@ import { getActiveStatistics, getVoteTrends } from "../api/vote";
 import { VoteTrendData, VoteTrendItem } from '../types/activity';
 import DailyVoteChart from '../components/DailyVoteChart';
 import CandidateComparisonChart from '../components/CandidateComparisonChart';
+import { getAllCollegeInfo } from '../api/college';
 
 const { Title, Text } = Typography;
 
@@ -90,10 +91,22 @@ export default function StatsPage() {
   const [trendData, setTrendData] = useState<VoteTrendData | null>(null);
   const [searchText, setSearchText] = useState('');
   const { role } = useAuth();
+  const [collegeInfoList, setCollegeInfoList] = useState<any[]>([]);
 
   // 数据获取
   useEffect(() => {
-    // 获取投票统计数据
+    const fetchCollegeInfo = async () => {
+      try {
+        const data = await getAllCollegeInfo();
+        setCollegeInfoList(data);
+      } catch (error) {
+        console.error('获取学院信息失败:', error);
+      }
+    };
+    fetchCollegeInfo();
+  }, []);
+
+  useEffect(() => {
     const fetchStats = async () => {
       try {
         setLoading(true);
@@ -102,7 +115,7 @@ export default function StatsPage() {
           candidateId: item.candidate_id,
           candidateName: item.name,
           collegeId: item.college_id,
-          collegeName: item.college_id,
+          collegeName: collegeInfoList.find(college => college.YXDM === item.college_id)?.YXDM_TEXT || '未知学院',
           voteCount: item.vote_count
         }));
         setStats(data);
@@ -113,7 +126,13 @@ export default function StatsPage() {
       }
     };
 
-    // 获取投票趋势数据
+    if (collegeInfoList.length > 0) {
+      fetchStats();
+    }
+  }, [collegeInfoList]);
+
+  // 获取投票趋势数据
+  useEffect(() => {
     const fetchTrendData = async () => {
       try {
         setTrendLoading(true);
@@ -127,10 +146,10 @@ export default function StatsPage() {
       }
     };
 
-    // 执行数据获取
-    fetchStats();
-    fetchTrendData();
-  }, []);
+    if (stats.length > 0) {
+      fetchTrendData();
+    }
+  }, [stats]);
 
   return (
     <Spin spinning={loading} tip="加载中...">
