@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Table, Spin, Card, Typography, Tag, Progress, Divider, Space, Input, Empty } from 'antd';
 import type { TableColumnsType } from 'antd';
 import { SearchOutlined, TeamOutlined, BarChartOutlined, LineChartOutlined, CalendarOutlined } from '@ant-design/icons';
@@ -92,8 +92,44 @@ export default function StatsPage() {
   const [searchText, setSearchText] = useState('');
   const { role } = useAuth();
   const [collegeInfoList, setCollegeInfoList] = useState<any[]>([]);
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
 
-  // 数据获取
+  // 获取统计数据的函数
+  const fetchStats = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await getActiveStatistics();
+      const data = response.map((item: any) => ({
+        candidateId: item.candidate_id,
+        candidateName: item.name,
+        collegeId: item.college_id,
+        collegeName: collegeInfoList.find(college => college.YXDM === item.college_id)?.YXDM_TEXT || '未知学院',
+        voteCount: item.vote_count
+      }));
+      setStats(data);
+      setLastUpdateTime(new Date());
+    } catch (error) {
+      console.error('获取统计信息失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [collegeInfoList]);
+
+  // 获取投票趋势数据的函数
+  const fetchTrendData = useCallback(async () => {
+    try {
+      setTrendLoading(true);
+      const response = await getVoteTrends();
+      console.info("API返回投票趋势数据:", response);
+      setTrendData(response);
+    } catch (error) {
+      console.error('获取投票趋势数据失败:', error);
+    } finally {
+      setTrendLoading(false);
+    }
+  }, []);
+
+  // 初始数据获取
   useEffect(() => {
     const fetchCollegeInfo = async () => {
       try {
@@ -107,53 +143,38 @@ export default function StatsPage() {
   }, []);
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        const response = await getActiveStatistics();
-        const data = response.map((item: any) => ({
-          candidateId: item.candidate_id,
-          candidateName: item.name,
-          collegeId: item.college_id,
-          collegeName: collegeInfoList.find(college => college.YXDM === item.college_id)?.YXDM_TEXT || '未知学院',
-          voteCount: item.vote_count
-        }));
-        setStats(data);
-      } catch (error) {
-        console.error('获取统计信息失败:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (collegeInfoList.length > 0) {
       fetchStats();
     }
-  }, [collegeInfoList]);
+  }, [collegeInfoList, fetchStats]);
 
-  // 获取投票趋势数据
   useEffect(() => {
-    const fetchTrendData = async () => {
-      try {
-        setTrendLoading(true);
-        const response = await getVoteTrends();
-        console.info("API返回投票趋势数据:", response);
-        setTrendData(response);
-      } catch (error) {
-        console.error('获取投票趋势数据失败:', error);
-      } finally {
-        setTrendLoading(false);
-      }
-    };
-
     if (stats.length > 0) {
       fetchTrendData();
     }
-  }, [stats]);
+  }, [stats, fetchTrendData]);
+
+  // 自动刷新功能
+  useEffect(() => {
+    // 每30秒刷新一次数据
+    const refreshInterval = setInterval(() => {
+      fetchStats();
+      fetchTrendData();
+    }, 30000);
+
+    // 组件卸载时清除定时器
+    return () => clearInterval(refreshInterval);
+  }, [fetchStats, fetchTrendData]);
 
   return (
     <Spin spinning={loading} tip="加载中...">
       <div className="p-8 bg-gray-50">
+        {/* 最后更新时间 */}
+        <div className="mb-4 text-right text-gray-500">
+          <Text type="secondary">
+            最后更新时间: {lastUpdateTime.toLocaleTimeString()}
+          </Text>
+        </div>
         {/* 候选人得票统计卡片 */}
         <div className="mb-8">
         <Card 
