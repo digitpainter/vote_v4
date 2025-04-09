@@ -41,8 +41,9 @@ class AdminService:
         return db.query(Administrator).filter(Administrator.stuff_id == stuff_id).first()
 
     @staticmethod
-    def get_admins(db: Session, skip: int = 0, limit: int = 100) -> List[Administrator]:
-        return db.query(Administrator).offset(skip).limit(limit).all()
+    def get_admins(db: Session) -> List[Administrator]:
+        # 返回所有管理员，不使用分页
+        return db.query(Administrator).all()
 
     @staticmethod
     def update_admin(db: Session, stuff_id: str, admin_update: AdminUpdate) -> Optional[Administrator]:

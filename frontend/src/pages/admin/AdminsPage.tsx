@@ -49,6 +49,7 @@ const AdminsPage: React.FC = () => {
   const fetchAdmins = async () => {
     setLoading(true);
     try {
+      // 获取所有管理员，不使用分页
       const data = await getAdmins();
       setAdmins(data);
     } catch (error: any) {
@@ -277,7 +278,7 @@ const AdminsPage: React.FC = () => {
         dataSource={admins} 
         rowKey="id" 
         loading={loading}
-        pagination={{ pageSize: 10 }}
+        pagination={false}
       />
 
       <Modal

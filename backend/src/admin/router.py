@@ -25,8 +25,8 @@ async def get_administrator(stuff_id: str, request: Request, db: Session = Depen
     return admin
 
 @router.get("/", response_model=List[AdminResponse])
-async def list_administrators(request: Request, skip: int = 0, limit: int = 100, db: Session = Depends(get_db), _= check_roles(allowed_roles=[])):
-    return AdminService.get_admins(db, skip=skip, limit=limit)
+async def list_administrators(request: Request, db: Session = Depends(get_db), _= check_roles(allowed_roles=[])):
+    return AdminService.get_admins(db)
 
 @router.put("/{stuff_id}", response_model=AdminResponse)
 async def update_administrator(stuff_id: str, admin: AdminUpdate, request: Request, db: Session = Depends(get_db), _= check_roles(allowed_admin_types=["school"])):
