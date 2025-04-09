@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Table, 
   Button, 
@@ -17,11 +17,14 @@ import {
   EditOutlined, 
   DeleteOutlined,
   UserAddOutlined,
-  ExclamationCircleOutlined
+  ExclamationCircleOutlined,
+  SearchOutlined
 } from '@ant-design/icons';
 import { Admin, AdminType, AdminCreate, AdminUpdate } from '../../types/admin';
 import { getAdmins, createAdmin, updateAdmin, deleteAdmin } from '../../api/admin';
 import { getColleges } from '../../api/college';
+import { useTableSearch } from '../../components/TableSearch';
+import type { InputRef } from 'antd';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -39,6 +42,8 @@ const AdminsPage: React.FC = () => {
   const [modalTitle, setModalTitle] = useState('');
   const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null);
   const [form] = Form.useForm();
+  const searchInput = useRef<InputRef>(null);
+  const { getColumnSearchProps } = useTableSearch<Admin>();
 
   // Fetch admins and colleges on component mount
   useEffect(() => {
@@ -197,30 +202,53 @@ const AdminsPage: React.FC = () => {
       title: '工号',
       dataIndex: 'stuff_id',
       key: 'stuff_id',
+      ...getColumnSearchProps({
+        dataIndex: 'stuff_id',
+        placeholder: '搜索工号'
+      })
     },
     {
       title: '管理员类型',
       dataIndex: 'admin_type',
       key: 'admin_type',
-      render: (type: AdminType) => (
-        <Tag color={type === AdminType.SCHOOL ? 'blue' : 'green'}>
-          {type === AdminType.SCHOOL ? '校级管理员' : '院级管理员'}
-        </Tag>
-      ),
+      ...getColumnSearchProps({
+        dataIndex: 'admin_type',
+        placeholder: '搜索管理员类型',
+        customRender: (type: AdminType) => (
+          <Tag color={type === AdminType.SCHOOL ? 'blue' : 'green'}>
+            {type === AdminType.SCHOOL ? '校级管理员' : '院级管理员'}
+          </Tag>
+        ),
+        customFilter: (value: string, record: Admin) => {
+          const displayText = record.admin_type === AdminType.SCHOOL ? '校级管理员' : '院级管理员';
+          return displayText.toLowerCase().includes(value.toLowerCase());
+        }
+      })
     },
     {
       title: '院系',
       dataIndex: 'college_id',
       key: 'college_id',
-      render: (collegeId: string, record: Admin) => {
-        if (!collegeId || record.admin_type === AdminType.SCHOOL) return '-';
-        
-        // 查找匹配的院系名称
-        const college = colleges.find(c => c.id === collegeId);
-        return college ? college.name : collegeId;
-      },
+      ...getColumnSearchProps({
+        dataIndex: 'college_id',
+        placeholder: '搜索院系',
+        customRender: (collegeId: string, record: Admin) => {
+          if (!collegeId || record.admin_type === AdminType.SCHOOL) return '-';
+          
+          // 查找匹配的院系名称
+          const college = colleges.find(c => c.id === collegeId);
+          return college ? college.name : collegeId;
+        },
+        customFilter: (value: string, record: Admin) => {
+          if (!record.college_id || record.admin_type === AdminType.SCHOOL) {
+            return '-'.includes(value.toLowerCase());
+          }
+          const college = colleges.find(c => c.id === record.college_id);
+          const collegeName = college ? college.name : record.college_id;
+          return collegeName.toString().toLowerCase().includes(value.toLowerCase());
+        }
+      })
     },
-
     {
       title: '创建时间',
       dataIndex: 'created_at',

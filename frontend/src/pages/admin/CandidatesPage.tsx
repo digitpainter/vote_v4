@@ -18,7 +18,8 @@ import {
   Divider,
   Row,
   Col,
-  Spin
+  Spin,
+  Statistic
 } from 'antd';
 import { 
   PlusOutlined, 
@@ -29,7 +30,13 @@ import {
   SearchOutlined,
   EyeOutlined,
   CalendarOutlined,
-  LoadingOutlined
+  LoadingOutlined,
+  ExclamationCircleOutlined,
+  UserOutlined,
+  TrophyOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  SyncOutlined
 } from '@ant-design/icons';
 import type { TableColumnsType } from 'antd';
 import type { InputRef } from 'antd';
@@ -39,6 +46,7 @@ import type { UploadFile, RcFile } from 'antd/es/upload/interface';
 import { getAllCandidates, updateCandidate, createCandidate, deleteCandidate, removeCandidateFromActivity, getAllActivities, uploadImage } from '../../api/vote';
 import { getAllCollegeInfo, CollegeInfo, getCollegeNameById } from '../../api/college';
 import { Activity } from '../../types/activity';
+import { useTableSearch } from '../../components/TableSearch';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -88,6 +96,7 @@ export default function CandidatesPage() {
   const [currentActivityId, setCurrentActivityId] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string>('');
+  const { getColumnSearchProps } = useTableSearch<Candidate>();
 
   // 获取候选人数据并更新学院名称
   const fetchCandidates = async () => {
@@ -248,110 +257,17 @@ export default function CandidatesPage() {
     }
   };
 
-  // 搜索处理函数
-  const handleSearch = (
-    selectedKeys: string[],
-    confirm: (param?: FilterConfirmProps) => void,
-    dataIndex: keyof Candidate,
-  ) => {
-    confirm();
-    setSearchText(selectedKeys[0]);
-    setSearchedColumn(dataIndex);
-  };
-
-  const handleReset = (clearFilters: () => void) => {
-    clearFilters();
-    setSearchText('');
-  };
-
-  // 创建搜索过滤框
-  const getColumnSearchProps = (dataIndex: keyof Candidate): ColumnType<Candidate> => ({
-    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters, close }) => (
-      <div style={{ padding: 8 }} onKeyDown={(e) => e.stopPropagation()}>
-        <Input
-          ref={searchInput}
-          placeholder={`搜索${dataIndex === 'name' ? '姓名' : dataIndex === 'college_name' ? '学院' : ''}`}
-          value={selectedKeys[0]}
-          onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-          onPressEnter={() => handleSearch(selectedKeys as string[], confirm, dataIndex)}
-          style={{ marginBottom: 8, display: 'block' }}
-        />
-        <Space>
-          <Button
-            type="primary"
-            onClick={() => handleSearch(selectedKeys as string[], confirm, dataIndex)}
-            icon={<SearchOutlined />}
-            size="small"
-            style={{ width: 90 }}
-          >
-            搜索
-          </Button>
-          <Button
-            onClick={() => clearFilters && handleReset(clearFilters)}
-            size="small"
-            style={{ width: 90 }}
-          >
-            重置
-          </Button>
-          <Button
-            type="link"
-            size="small"
-            onClick={() => {
-              close();
-            }}
-          >
-            关闭
-          </Button>
-        </Space>
-      </div>
-    ),
-    filterIcon: (filtered: boolean) => (
-      <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
-    ),
-    onFilter: (value, record) => {
-      if (dataIndex === 'college_name') {
-        // 使用college_id获取学院名称并搜索
-        const collegeName = getCollegeNameById(collegeInfoList, record.college_id);
-        return collegeName.toLowerCase().includes((value as string).toLowerCase());
-      }
-      // 其他字段正常搜索
-      return (record[dataIndex]?.toString() || '')
-        .toLowerCase()
-        .includes((value as string).toLowerCase());
-    },
-    filterDropdownProps: {
-      onOpenChange: (visible) => {
-        if (visible) {
-          setTimeout(() => searchInput.current?.select(), 100);
-        }
-      }
-    },
-    render: (text, record) => {
-      if (dataIndex === 'college_name') {
-        // 显示college_name时使用getCollegeNameById函数获取
-        text = getCollegeNameById(collegeInfoList, record.college_id);
-      }
-      
-      return searchedColumn === dataIndex ? (
-        <span style={{ backgroundColor: '#ffc069', padding: 0 }}>
-          {(text?.toString() || '').split(new RegExp(`(${searchText})`, 'gi')).map((fragment: string, i: number) => 
-            fragment.toLowerCase() === searchText.toLowerCase() ? 
-              <span key={i} className="bg-yellow-200">{fragment}</span> : fragment
-          )}
-        </span>
-      ) : (
-        text
-      );
-    },
-  });
-
   // 表格列定义
   const columns: TableColumnsType<Candidate> = [
     {
       title: '候选人',
       dataIndex: 'name',
       key: 'name',
-      ...getColumnSearchProps('name'),
+      width: 120,
+      ...getColumnSearchProps({
+        dataIndex: 'name',
+        placeholder: '搜索候选人姓名'
+      }),
       render: (text, record) => (
         <div className="flex items-center gap-3">
           <Avatar src={record.photo} size="large" />
@@ -363,13 +279,20 @@ export default function CandidatesPage() {
       title: '所属学院',
       dataIndex: 'college_id',
       key: 'college_name',
-      ...getColumnSearchProps('college_name'),
+      width: 150,
+      ...getColumnSearchProps({
+        dataIndex: 'college_name',
+        placeholder: '搜索学院名称'
+      }),
       render: (collegeId, record) => getCollegeNameById(collegeInfoList, collegeId),
       filters: Array.from(new Set(collegeInfoList.map(c => c.YXDM_TEXT))).map(collegeName => ({
         text: collegeName,
         value: collegeName,
       })),
-      onFilter: (value, record) => getCollegeNameById(collegeInfoList, record.college_id) === value,
+      onFilter: (value, record) => {
+        const collegeName = getCollegeNameById(collegeInfoList, record.college_id);
+        return collegeName.toLowerCase().includes(value.toString().toLowerCase());
+      },
     },
     {
       title: '简介',

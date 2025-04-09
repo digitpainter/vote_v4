@@ -17,7 +17,10 @@ import {
   Select,
   InputNumber,
   Transfer,
-  List
+  List,
+  Row,
+  Col,
+  Statistic
 } from 'antd';
 import { 
   PlusOutlined, 
@@ -30,7 +33,11 @@ import {
   UserOutlined,
   MenuOutlined,
   ArrowUpOutlined,
-  ArrowDownOutlined
+  ArrowDownOutlined,
+  ExclamationCircleOutlined,
+  CalendarOutlined,
+  CloseCircleOutlined,
+  SyncOutlined
 } from '@ant-design/icons';
 import type { TableColumnsType } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
@@ -67,6 +74,7 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useTableSearch } from '../../components/TableSearch';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -137,6 +145,7 @@ export default function ActivitiesPage() {
   const [selectedActivity, setSelectedActivity] = useState<ApiActivity | null>(null);
   const [collegeInfoList, setCollegeInfoList] = useState<CollegeInfo[]>([]);
   const [orderedTargetKeys, setOrderedTargetKeys] = useState<string[]>([]);
+  const { getColumnSearchProps } = useTableSearch<ApiActivity>();
 
   // 配置拖拽传感器
   const sensors = useSensors(
@@ -213,91 +222,6 @@ export default function ActivitiesPage() {
     fetchCollegeInfo();
   }, []);
 
-  // 搜索处理函数
-  const handleSearch = (
-    selectedKeys: string[],
-    confirm: (param?: FilterConfirmProps) => void,
-    dataIndex: keyof ApiActivity,
-  ) => {
-    confirm();
-    setSearchText(selectedKeys[0]);
-    setSearchedColumn(dataIndex);
-  };
-
-  const handleReset = (clearFilters: () => void) => {
-    clearFilters();
-    setSearchText('');
-  };
-
-  // 创建搜索过滤框
-  const getColumnSearchProps = (dataIndex: keyof ApiActivity): ColumnType<ApiActivity> => ({
-    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters, close }) => (
-      <div style={{ padding: 8 }} onKeyDown={(e) => e.stopPropagation()}>
-        <Input
-          ref={searchInput}
-          placeholder={`搜索 ${dataIndex}`}
-          value={selectedKeys[0]}
-          onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-          onPressEnter={() => handleSearch(selectedKeys as string[], confirm, dataIndex)}
-          style={{ marginBottom: 8, display: 'block' }}
-        />
-        <Space>
-          <Button
-            type="primary"
-            onClick={() => handleSearch(selectedKeys as string[], confirm, dataIndex)}
-            icon={<SearchOutlined />}
-            size="small"
-            style={{ width: 90 }}
-          >
-            搜索
-          </Button>
-          <Button
-            onClick={() => clearFilters && handleReset(clearFilters)}
-            size="small"
-            style={{ width: 90 }}
-          >
-            重置
-          </Button>
-          <Button
-            type="link"
-            size="small"
-            onClick={() => {
-              close();
-            }}
-          >
-            关闭
-          </Button>
-        </Space>
-      </div>
-    ),
-    filterIcon: (filtered: boolean) => (
-      <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
-    ),
-    onFilter: (value, record) =>
-      (record[dataIndex] as string)
-        .toString()
-        .toLowerCase()
-        .includes((value as string).toLowerCase()),
-    filterDropdownProps: {
-      onOpenChange: (visible) => {
-        if (visible) {
-          setTimeout(() => searchInput.current?.select(), 100);
-        }
-      }
-    },
-    render: (text) =>
-      searchedColumn === dataIndex ? (
-        <Highlighter
-          highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
-          searchWords={[searchText]}
-          autoEscape
-          textToHighlight={text ? text.toString() : ''}
-        />
-      ) : (
-        text
-      ),
-  });
-
   // 获取活动状态
   const getActivityStatus = (activity: ApiActivity): 'active' | 'pending' | 'ended' => {
     const now = new Date();
@@ -319,9 +243,13 @@ export default function ActivitiesPage() {
       title: '活动名称',
       dataIndex: 'title',
       key: 'title',
-      ...getColumnSearchProps('title'),
-      render: (text) => <Text strong>{text}</Text>,
+      width: 200,
+      ...getColumnSearchProps({
+        dataIndex: 'title',
+        placeholder: '搜索活动名称'
+      })
     },
+
     {
       title: '描述',
       dataIndex: 'description',
