@@ -10,7 +10,8 @@ import {
   message, 
   Typography, 
   Popconfirm, 
-  Tag 
+  Tag ,
+  Tooltip
 } from 'antd';
 import { 
   PlusOutlined, 
@@ -260,29 +261,19 @@ const AdminsPage: React.FC = () => {
       key: 'action',
       render: (_: any, record: Admin) => (
         <Space size="middle">
-          <Button 
-            type="primary" 
-            icon={<EditOutlined />} 
-            size="small"
-            onClick={() => showEditModal(record)}
-          >
-            编辑
-          </Button>
-          <Popconfirm
-            title="确定要删除此管理员吗？"
-            icon={<ExclamationCircleOutlined style={{ color: 'red' }} />}
-            onConfirm={() => handleDelete(record.stuff_id)}
-            okText="确定"
-            cancelText="取消"
-          >
-            <Button 
-              danger 
-              icon={<DeleteOutlined />} 
-              size="small"
+          <Tooltip title="编辑">
+            <Button type="text" icon={<EditOutlined />} onClick={() =>  showEditModal(record)} />
+          </Tooltip>
+          <Tooltip title="删除">
+            <Popconfirm
+              title="确定要删除这位管理员吗？"
+              onConfirm={() => handleDelete(record.stuff_id)}
+              okText="确定"
+              cancelText="取消"
             >
-              删除
-            </Button>
-          </Popconfirm>
+              <Button type="text" danger icon={<DeleteOutlined />} />
+            </Popconfirm>
+          </Tooltip>
         </Space>
       ),
     },
