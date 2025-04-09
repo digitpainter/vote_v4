@@ -18,6 +18,7 @@ import DashboardPage from './pages/admin/DashboardPage';
 import ActivitiesPage from './pages/admin/ActivitiesPage';
 import CandidatesPage from './pages/admin/CandidatesPage';
 import DataPage from './pages/admin/DataPage';
+import AdminsPage from './pages/admin/AdminsPage';
 
 function App() {
 
@@ -47,6 +48,7 @@ function App() {
                 <Route path="activities" element={<ActivitiesPage />} />
                 <Route path="candidates" element={<CandidatesPage />} />
                 <Route path="data" element={<DataPage />} />
+                <Route path="admins" element={<AdminsPage />} />
               </Route>
               
               <Route path="/" element={

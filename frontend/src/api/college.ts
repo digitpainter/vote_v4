@@ -1,4 +1,5 @@
 import { handleApiError } from '../utils/errorHandler';
+import axios from 'axios';
 
 // 学院信息类型定义
 export interface CollegeInfo {
@@ -74,5 +75,22 @@ export const fetchCollegeMapping = async () => {
   } catch (error) {
     console.error('[College API] 学院数据获取错误:', error);
     throw error;
+  }
+};
+
+// Get all colleges
+export const getColleges = async (): Promise<{ id: string; name: string }[]> => {
+  try {
+    // Use the existing getAllCollegeInfo function
+    const collegesData = await getAllCollegeInfo();
+    
+    // Transform the data to the format expected by the AdminsPage component
+    return collegesData.map(college => ({
+      id: college.YXDM,
+      name: college.YXDM_TEXT
+    }));
+  } catch (error) {
+    console.error('Error fetching colleges:', error);
+    return []; // Return empty array for now
   }
 };

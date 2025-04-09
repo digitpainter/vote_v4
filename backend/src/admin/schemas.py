@@ -16,8 +16,10 @@ class AdminBase(BaseModel):
 class AdminCreate(AdminBase):
     pass
 
-class AdminUpdate(AdminBase):
-    pass
+class AdminUpdate(BaseModel):
+    admin_type: AdminType
+    college_id: Optional[str] = None
+    college_name: Optional[str] = None
 
 class AdminResponse(AdminBase):
     id: int

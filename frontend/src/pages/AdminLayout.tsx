@@ -5,7 +5,8 @@ import {
   DownloadOutlined, 
   DashboardOutlined, 
   LogoutOutlined,
-  SettingOutlined
+  SettingOutlined,
+  TeamOutlined
 } from '@ant-design/icons';
 import { Outlet, Link, useLocation } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
@@ -42,6 +43,11 @@ export default function AdminLayout() {
       key: 'candidates',
       icon: <UserOutlined />,
       label: <Link to="/admin/candidates">候选人管理</Link>,
+    },
+    {
+      key: 'admins',
+      icon: <TeamOutlined />,
+      label: <Link to="/admin/admins">管理员权限</Link>,
     },
     {
       key: 'data',

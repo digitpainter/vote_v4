@@ -30,13 +30,19 @@ async def list_administrators(request: Request, skip: int = 0, limit: int = 100,
 
 @router.put("/{stuff_id}", response_model=AdminResponse)
 async def update_administrator(stuff_id: str, admin: AdminUpdate, request: Request, db: Session = Depends(get_db), _= check_roles(allowed_admin_types=["school"])):
-    updated_admin = AdminService.update_admin(db, stuff_id, admin)
-    if not updated_admin:
-        raise HTTPException(status_code=404, detail="Administrator not found")
-    return updated_admin
+    try:
+        updated_admin = AdminService.update_admin(db, stuff_id, admin)
+        if not updated_admin:
+            raise HTTPException(status_code=404, detail="Administrator not found")
+        return updated_admin
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/{stuff_id}")
 async def delete_administrator(stuff_id: str, request: Request, db: Session = Depends(get_db), _= check_roles(allowed_admin_types=["school"])):
-    if not AdminService.delete_admin(db, stuff_id):
-        raise HTTPException(status_code=404, detail="Administrator not found")
-    return {"message": "Administrator deleted successfully"}
+    try:
+        if not AdminService.delete_admin(db, stuff_id):
+            raise HTTPException(status_code=404, detail="Administrator not found")
+        return {"message": "Administrator deleted successfully"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

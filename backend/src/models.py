@@ -85,7 +85,7 @@ class Administrator(Base):
     __tablename__ = "administrators"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    stuff_id: Mapped[str] = mapped_column(String(50))
+    stuff_id: Mapped[str] = mapped_column(String(50), unique=True)
     admin_type: Mapped[AdminType] = mapped_column(String(10))
     college_id: Mapped[str] = mapped_column(String(50), nullable=True)
     college_name: Mapped[str] = mapped_column(String(100), nullable=True)

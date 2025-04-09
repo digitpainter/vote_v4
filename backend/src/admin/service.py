@@ -9,6 +9,11 @@ from .schemas import AdminCreate, AdminUpdate, AdminType
 class AdminService:
     @staticmethod
     def create_admin(db: Session, admin: AdminCreate) -> Administrator:
+        # 检查 stuff_id 是否已存在
+        existing_admin = AdminService.get_admin(db, admin.stuff_id)
+        if existing_admin:
+            raise ValueError(f"工号 {admin.stuff_id} 已被使用，请使用其他工号")
+            
         if admin.admin_type == AdminType.COLLEGE and not (admin.college_id and admin.college_name):
             raise ValueError("College ID and name are required for college administrators")
         
