@@ -17,9 +17,9 @@ async def create_administrator(admin: AdminCreate, request: Request, db: Session
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/{admin_id}", response_model=AdminResponse)
-async def get_administrator(admin_id: int, request: Request, db: Session = Depends(get_db), _= check_roles(allowed_roles=[])):
-    admin = AdminService.get_admin(db, admin_id)
+@router.get("/{stuff_id}", response_model=AdminResponse)
+async def get_administrator(stuff_id: str, request: Request, db: Session = Depends(get_db), _= check_roles(allowed_roles=[])):
+    admin = AdminService.get_admin(db, stuff_id)
     if not admin:
         raise HTTPException(status_code=404, detail="Administrator not found")
     return admin
@@ -28,15 +28,15 @@ async def get_administrator(admin_id: int, request: Request, db: Session = Depen
 async def list_administrators(request: Request, skip: int = 0, limit: int = 100, db: Session = Depends(get_db), _= check_roles(allowed_roles=[])):
     return AdminService.get_admins(db, skip=skip, limit=limit)
 
-@router.put("/{admin_id}", response_model=AdminResponse)
-async def update_administrator(admin_id: int, admin: AdminUpdate, request: Request, db: Session = Depends(get_db), _= check_roles( allowed_admin_types=["school"])):
-    updated_admin = AdminService.update_admin(db, admin_id, admin)
+@router.put("/{stuff_id}", response_model=AdminResponse)
+async def update_administrator(stuff_id: str, admin: AdminUpdate, request: Request, db: Session = Depends(get_db), _= check_roles(allowed_admin_types=["school"])):
+    updated_admin = AdminService.update_admin(db, stuff_id, admin)
     if not updated_admin:
         raise HTTPException(status_code=404, detail="Administrator not found")
     return updated_admin
 
-@router.delete("/{admin_id}")
-async def delete_administrator(admin_id: int, request: Request, db: Session = Depends(get_db), _= check_roles( allowed_admin_types=["school"])):
-    if not AdminService.delete_admin(db, admin_id):
+@router.delete("/{stuff_id}")
+async def delete_administrator(stuff_id: str, request: Request, db: Session = Depends(get_db), _= check_roles(allowed_admin_types=["school"])):
+    if not AdminService.delete_admin(db, stuff_id):
         raise HTTPException(status_code=404, detail="Administrator not found")
     return {"message": "Administrator deleted successfully"}
