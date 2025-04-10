@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Typography, 
   Card, 
@@ -11,7 +11,9 @@ import {
   Tabs,
   Alert,
   Divider,
-  Tooltip
+  Tooltip,
+  Radio,
+  Spin
 } from 'antd';
 import { 
   DownloadOutlined, 
@@ -22,13 +24,26 @@ import {
   PieChartOutlined,
   InfoCircleOutlined,
   TeamOutlined,
-  BankOutlined
+  BankOutlined,
+  EyeOutlined
 } from '@ant-design/icons';
 import type { TableColumnsType } from 'antd';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import { 
+  fetchActivities, 
+  fetchColleges, 
+  fetchPreviewData, 
+  exportData,
+  VoteRecord,
+  CandidateStats,
+  College,
+  ExportFormat,
+  ExportType,
+  ExportResponse
+} from '../../api/data';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -47,42 +62,6 @@ interface Activity {
   min_votes: number;
 }
 
-// 学院类型
-interface College {
-  YXDM: string;
-  YXDM_TEXT: string;
-}
-
-// 投票记录类型
-interface VoteRecord {
-  voter_id: string;
-  voter_college_name: string;
-}
-
-// 候选人得票统计类型
-interface CandidateStats {
-  rank: number;
-  college_id?: string;
-  college_name: string;
-  candidate_name: string;
-  vote_count: number;
-}
-
-// 导出数据响应类型
-interface ExportResponse {
-  activity: {
-    id: number;
-    title: string;
-    start_time: string;
-    end_time: string;
-  };
-  export_type: string;
-  data: {
-    total_voters: number;
-    records: VoteRecord[] | CandidateStats[];
-  };
-}
-
 // 学生信息类型
 interface StudentInfo {
   XGH: string;       // 学号
@@ -93,12 +72,6 @@ interface StudentInfo {
   NJ: string;        // 年级
   XBDM_TEXT: string; // 性别
 }
-
-// 导出格式类型
-type ExportFormat = 'excel' | 'csv';
-
-// 导出类型
-type ExportType = 'vote_records' | 'candidate_stats';
 
 export default function DataPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -113,21 +86,20 @@ export default function DataPage() {
   
   // 新增状态
   const [colleges, setColleges] = useState<College[]>([]);
-  const [selectedCollege, setSelectedCollege] = useState<string | null>(null);
+  const [selectedCollege, setSelectedCollege] = useState<string>('all');
   const [downloadLoading, setDownloadLoading] = useState(false);
 
-  // 获取所有活动
   useEffect(() => {
-    fetchActivities();
-    fetchColleges();
+    fetchActivitiesData();
+    fetchCollegesData();
   }, []);
 
   // 获取活动列表
-  const fetchActivities = async () => {
+  const fetchActivitiesData = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:8000/vote/activities/');
-      setActivities(response.data);
+      const data = await fetchActivities();
+      setActivities(data);
     } catch (error) {
       console.error('获取活动失败:', error);
       message.error('获取活动列表失败，请稍后重试');
@@ -137,13 +109,13 @@ export default function DataPage() {
   };
 
   // 获取学院列表
-  const fetchColleges = async () => {
+  const fetchCollegesData = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/vote/colleges/');
+      const data = await fetchColleges();
       // 添加"全部学院"选项
       const allColleges = [
         { YXDM: 'all', YXDM_TEXT: '全部学院' },
-        ...response.data
+        ...data
       ];
       setColleges(allColleges);
     } catch (error) {
@@ -224,8 +196,7 @@ export default function DataPage() {
       };
       
       // 获取预览数据
-      const response = await axios.get('http://localhost:8000/vote/preview', { params });
-      const { data } = response;
+      const data = await fetchPreviewData(params);
       
       // 根据导出类型设置预览数据
       if (exportType === 'vote_records') {
@@ -271,8 +242,7 @@ export default function DataPage() {
       };
       
       // 获取数据
-      const response = await axios.get<ExportResponse>('http://localhost:8000/vote/export', { params });
-      const { data } = response;
+      const data = await exportData(params);
       
       // 根据导出格式处理数据
       if (exportFormat === 'excel') {
@@ -553,7 +523,7 @@ export default function DataPage() {
                     showSearch
                     optionFilterProp="children"
                     style={{ width: '100%' }}
-                    value={selectedCollege || 'all'}
+                    value={selectedCollege}
                     onChange={value => setSelectedCollege(value)}
                     allowClear
                     defaultActiveFirstOption

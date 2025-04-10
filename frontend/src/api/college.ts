@@ -1,6 +1,10 @@
-import { handleApiError } from '../utils/errorHandler';
 import axios from 'axios';
+import { handleApiError } from '../utils/errorHandler';
 
+// API基础路径常量
+const BASE_URL = 'http://localhost:8000';
+
+// 类型定义
 // 学院信息类型定义
 export interface CollegeInfo {
   YXDM: string;      // 学院代码
@@ -32,65 +36,81 @@ export const FALLBACK_COLLEGE_INFO: CollegeInfo[] = [
   {"YXDM":"0526000","YXDM_TEXT":"人工智能学院"}
 ];
 
-// 获取所有学院信息
-export async function getAllCollegeInfo(): Promise<CollegeInfo[]> {
+/**
+ * 获取所有学院信息
+ * @returns 学院信息列表
+ */
+export const getAllCollegeInfo = async (): Promise<CollegeInfo[]> => {
   try {
     // 尝试从本地后端代理获取数据
-    const response = await fetch('http://localhost:8000/vote/colleges/', {
-      method: 'GET',
+    const response = await axios.get(`${BASE_URL}/vote/colleges/`, {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      credentials: 'include',
-      mode: 'cors'
+      withCredentials: true
     });
-
-    if (!response.ok) {
-      console.warn('通过后端代理获取学院信息失败，使用备用数据');
-      return FALLBACK_COLLEGE_INFO;
-    }
     
-    return await response.json();
+    return response.data;
   } catch (error) {
-    console.error('[API Error] 获取学院信息错误:', error);
+    console.error('[API Error] 获取学院信息失败:', error);
     console.warn('使用备用学院信息数据');
     return FALLBACK_COLLEGE_INFO;
   }
-}
+};
 
-// 根据学院代码获取学院名称
-export function getCollegeNameById(collegeInfoList: CollegeInfo[], collegeId: string): string {
+/**
+ * 根据学院代码获取学院名称
+ * @param collegeInfoList 学院信息列表
+ * @param collegeId 学院代码
+ * @returns 学院名称
+ */
+export const getCollegeNameById = (collegeInfoList: CollegeInfo[], collegeId: string): string => {
   const college = collegeInfoList.find(item => item.YXDM === collegeId);
   return college ? college.YXDM_TEXT : '未知学院';
-}
+};
 
+/**
+ * 获取学院映射数据
+ * @returns 学院映射数据
+ */
 export const fetchCollegeMapping = async () => {
   try {
-    const response = await fetch('http://localhost:8000/college-mapping');
-    if (!response.ok) {
-      throw new Error('获取学院数据失败');
-    }
-    return await response.json();
+    const response = await axios.get(`${BASE_URL}/college-mapping`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      withCredentials: true
+    });
+    
+    return response.data;
   } catch (error) {
-    console.error('[College API] 学院数据获取错误:', error);
+    console.error('[API Error] 获取学院映射数据失败:', error);
+    if (axios.isAxiosError(error) && error.response) {
+      const message = handleApiError(error.response.status, error.response.data);
+      throw new Error('获取学院映射数据失败: ' + message);
+    }
     throw error;
   }
 };
 
-// Get all colleges
+/**
+ * 获取所有学院
+ * @returns 学院列表（格式化后）
+ */
 export const getColleges = async (): Promise<{ id: string; name: string }[]> => {
   try {
-    // Use the existing getAllCollegeInfo function
+    // 使用已有的getAllCollegeInfo函数
     const collegesData = await getAllCollegeInfo();
     
-    // Transform the data to the format expected by the AdminsPage component
+    // 将数据转换为AdminsPage组件需要的格式
     return collegesData.map(college => ({
       id: college.YXDM,
       name: college.YXDM_TEXT
     }));
   } catch (error) {
-    console.error('Error fetching colleges:', error);
-    return []; // Return empty array for now
+    console.error('[API Error] 获取学院列表失败:', error);
+    return []; // 暂时返回空数组
   }
 };

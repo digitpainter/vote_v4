@@ -1,6 +1,7 @@
 import {createContext, useContext, useState, useEffect, ReactNode} from 'react';
 import { handleApiError } from '../utils/errorHandler';
 import {AdminType, UserRole} from '../types/auth';
+import { fetchCurrentUser, getCasLoginUrl, getCasLogoutUrl } from '../api/auth';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -50,7 +51,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
   const login = async () => {
     console.debug(`[API Request][${new Date().toISOString()}] 登录请求`);
     try {
-      const url = `http://localhost:8001/login?service=http://localhost:5173/cas-callback`;
+      const url = getCasLoginUrl();
       window.location.href = url;
     } catch (error) {
       console.error('登录失败:', error);
@@ -80,26 +81,14 @@ export function AuthProvider({children}: { children: ReactNode }) {
     setToken(null);
     SetAdminCollegeId(null);
     localStorage.removeItem('token');  // 移除手动token存储
-    const url = `http://localhost:8001/logout`;
+    const url = getCasLogoutUrl();
     window.location.href = url;
   };
 
   const refreshUser = async () => {
     try {
       console.debug(`[API Request][${new Date().toISOString()}] 刷新用户信息请求，token: ${localStorage.getItem('token')}`);
-      const response = await fetch('http://localhost:8000/auth/users/me', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        credentials: 'include',
-      });
-
-      console.debug(`[API Response][${new Date().toISOString()}] 用户信息刷新响应状态: ${response.status}`);
-      const data = await response.json();
-      if (!response.ok) {
-        const message = handleApiError(response.status, data);
-        throw new Error('Failed to refresh user' + message);
-      }
+      const data = await fetchCurrentUser();
       console.debug(`[API Data][${new Date().toISOString()}] 用户信息刷新成功，staff_id: ${data.staff_id}`);
       console.debug(`[API Data][${new Date().toISOString()}] 用户信息刷新成功，data: ${data}`);
       console.debug(`[API Data][${new Date().toISOString()}] 用户信息刷新成功，data: ${data.username}`);

@@ -6,39 +6,14 @@ import {
   RiseOutlined, 
   ClockCircleOutlined 
 } from '@ant-design/icons';
-import axios from 'axios';
+import {
+  fetchTotalStats,
+  fetchRecentActivities,
+  DashboardStats,
+  RecentActivity
+} from '../../api/dashboard';
 
 const { Title, Text } = Typography;
-
-// 定义仪表盘统计数据类型
-interface DashboardStats {
-  totalActivities: number;
-  totalCandidates: number;
-  totalVotes: number;
-  activeActivities: number;
-}
-
-// 定义最近活动类型
-interface RecentActivity {
-  id: string;
-  name: string;
-  type: 'vote' | 'create' | 'update' | 'delete';
-  time: string;
-  description: string;
-}
-
-// 定义API响应类型
-interface TotalStatsResponse {
-  total_votes: number;
-  total_activities: number;
-  total_candidates: number;
-  activities: Array<{
-    activity_id: number;
-    activity_title: string;
-    is_active: boolean;
-    vote_count: number;
-  }>;
-}
 
 export default function DashboardPage() {
   // 初始化统计数据
@@ -56,18 +31,7 @@ export default function DashboardPage() {
   const fetchStats = async () => {
     try {
       setLoading(true);
-      const response = await axios.get<TotalStatsResponse>(
-        'http://localhost:8000/vote/statistics/total',
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          withCredentials: true
-        }
-      );
-      
-      const data = response.data;
+      const data = await fetchTotalStats();
       
       // 计算活动中的活动数量
       const activeActivitiesCount = data.activities.filter(activity => activity.is_active).length;
@@ -86,46 +50,11 @@ export default function DashboardPage() {
     }
   };
 
-  // 加载模拟的最近活动数据
+  // 加载最近活动数据
   const loadRecentActivities = () => {
-    // 这里仍使用模拟数据，实际项目中可替换为API调用
-    setRecentActivities([
-      { 
-        id: '1', 
-        name: '管理员', 
-        type: 'create', 
-        time: '2024-03-29 14:32:45', 
-        description: '创建了新活动【2024学生会选举】' 
-      },
-      { 
-        id: '2', 
-        name: '张三', 
-        type: 'vote', 
-        time: '2024-03-29 13:15:22', 
-        description: '在【2024学生会选举】中投票' 
-      },
-      { 
-        id: '3', 
-        name: '管理员', 
-        type: 'update', 
-        time: '2024-03-28 10:05:13', 
-        description: '更新了活动【2024学生会选举】信息' 
-      },
-      { 
-        id: '4', 
-        name: '李四', 
-        type: 'vote', 
-        time: '2024-03-27 16:42:01', 
-        description: '在【2024学生会选举】中投票' 
-      },
-      { 
-        id: '5', 
-        name: '管理员', 
-        type: 'delete', 
-        time: '2024-03-26 09:30:56', 
-        description: '删除了候选人【王五】' 
-      }
-    ]);
+    // 获取最近活动数据
+    const activities = fetchRecentActivities();
+    setRecentActivities(activities);
   };
 
   // 页面加载时获取数据

@@ -1,6 +1,7 @@
 import { useEffect ,useState ,useRef} from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router';
+import { handleCasCallback } from '../api/auth';
 
 export default function CasCallbackPage() {
     console.debug('CasCallbackPage cas callback page');
@@ -20,14 +21,7 @@ export default function CasCallbackPage() {
       const {signal} = abortControllerRef.current;
       const handleLogin = async () => {
         try {
-          const response = await fetch(`http://localhost:8000/auth/cas-callback?ticket=${ticket}`, {
-            signal: signal,
-          });
-          console.debug('CasCallbackPage handleLogin');
-          if (!response.ok) {
-            throw new Error('CAS认证失败');
-          }
-          const data = await response.json();
+          const data = await handleCasCallback(ticket);
           console.debug('CasCallbackPage handleLogin data');
           console.debug(`[API Response][${new Date().toISOString()}] 登录响应 ${JSON.stringify(data)}`);
           if (data.access_token) {

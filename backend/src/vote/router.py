@@ -129,7 +129,7 @@ def get_activities(
 @router.get("/activities/active/", response_model=List[ActivityResponse])
 def get_active_activities(
     db: Session = Depends(get_db),
-    _= Depends(check_roles())  # 所有登录的人
+    # 任何人
 ):
     return VoteService.get_active_activities(db)
 

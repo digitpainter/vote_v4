@@ -2,6 +2,7 @@ import {createContext, useContext, useState, useEffect, ReactNode} from 'react';
 import {handleApiError} from '../utils/errorHandler';
 import {Activity} from '../types/activity';
 import {Candidate} from '../types/candidate';
+import { fetchActiveActivities, fetchCandidatesByIds } from '../api/activity';
 
 interface ActivityContextType {
   activeActivities: Activity[];
@@ -23,69 +24,22 @@ export function ActivityProvider({children}: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [maxVotes, setMaxVotes] = useState(0);
   const [minVotes, setMinVotes] = useState(0);
-  const fetchCandidates = async (candidateIds: string[]) => {
-    try {
-      console.debug(`[API Request][${new Date().toLocaleString()}] Fetching candidates with IDs: ${candidateIds.join(', ')}`);
-      const url = new URL('http://localhost:8000/vote/candidates/batch/');
-      candidateIds.forEach(id => url.searchParams.append('candidate_ids', id));
-      const response = await fetch(url.toString(), {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        mode: 'cors'
-      });
-
-      console.debug(`[API Response][${new Date().toLocaleString()}] Candidates fetch status: ${response.status}, content length: ${response.headers.get('Content-Length')}`);
-
-      if (!response.ok) {
-        const message = handleApiError(response.status, await response.json());
-        throw new Error('Failed to fetch candidates '+ message);
-      }
-
-      const candidatesData = await response.json();
-      console.debug(`[API Data][${new Date().toLocaleString()}] Received ${candidatesData.length} candidates`);
-      
-      // 根据candidateIds的顺序重新排列candidatesData
-      const orderedCandidatesData = candidateIds.map(id => {
-        return candidatesData.find((candidate: any) => candidate.id.toString() === id.toString());
-      }).filter(Boolean);
-      
-      return orderedCandidatesData;
-    } catch (error) {
-      console.error('[API Error] Candidate fetch error:', error);
-      throw error;
-    }
-  };
 
   const refreshActivities = async () => {
     setLoading(true);
     setError(null);
     try {
       console.debug(`[API Request][${new Date().toLocaleString()}] Fetching active activities`);
-       const response = await fetch('http://localhost:8000/vote/activities/active/', {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        mode: 'cors'
-      });
-
-      console.debug(`[API Response][${new Date().toLocaleString()}] Activities fetch status: ${response.status}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        const message = handleApiError(response.status, data);
-        throw new Error('Failed to fetch active activities '+message);
-      }
-
+      const data = await fetchActiveActivities();
       console.debug(`[API Data][${new Date().toLocaleString()}] Received ${data.length} activities`);
       setActiveActivities(data);
 
       // Batch fetch candidates
-      const allCandidateIds = data.flatMap((activity: Activity) => activity.candidate_ids);
+      const allCandidateIds = data.flatMap((activity: Activity) => 
+        activity.candidate_ids.map(id => id.toString())
+      );
       if (allCandidateIds.length > 0) {
-        const candidatesData = await fetchCandidates(allCandidateIds);
+        const candidatesData = await fetchCandidatesByIds(allCandidateIds);
         setCandidates(candidatesData);
       }
       const { max_votes, min_votes } = data[0] || {};
@@ -113,7 +67,7 @@ export function ActivityProvider({children}: { children: ReactNode }) {
         maxVotes,
         minVotes,
         refreshActivities,
-        refreshCandidates: fetchCandidates
+        refreshCandidates: fetchCandidatesByIds
       }}
     >
       {children}
