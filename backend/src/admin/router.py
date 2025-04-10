@@ -4,14 +4,14 @@ from typing import List
 
 from .schemas import AdminCreate, AdminUpdate, AdminResponse
 from .service import AdminService
-from ..auth.service import AuthService
+from ..auth.service import AuthService,AdminType,RoleType 
 from ..database import get_db
 from ..auth.dependencies import check_roles
 
 router = APIRouter()
 
 @router.post("/", response_model=AdminResponse)
-async def create_administrator(admin: AdminCreate, request: Request, db: Session = Depends(get_db), _= check_roles(allowed_roles=["teacher"], allowed_admin_types=["school"])):
+async def create_administrator(admin: AdminCreate, request: Request, db: Session = Depends(get_db), _= check_roles(allowed_roles=AdminType.all)):
     try:
         return AdminService.create_admin(db, admin)
     except ValueError as e:

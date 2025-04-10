@@ -10,6 +10,16 @@ from ..database import SessionLocal
 from ..models import Administrator
 import os
 
+class AdminType:
+    school = "school"
+    college = "college"
+    all =[school,college]
+
+class RoleType:
+    teacher = "teacher"
+    student = "student"
+    all = [teacher,student]
+
 class AuthService:
     redis_client = redis.Redis(host='localhost', port=6379, db=0)
     

@@ -15,6 +15,7 @@ from .service import VoteService
 from ..database import get_db
 from ..auth.dependencies import check_roles
 from ..auth.service import AuthService
+from ..auth.constants import AdminType, UserRole
 from ..models import  Vote, VoteActivity
 from ..config import IMAGES_DIR, IMAGE_CONFIG, BASE_URL
 
@@ -23,7 +24,7 @@ router = APIRouter()
 @router.get("/active-statistics", response_model=List[ActiveVoteStatistics])
 def get_active_activities_statistics(
     db: Session = Depends(get_db),
-    # _= check_roles(allowed_admin_types=["school"])
+    _= Depends(check_roles(allowed_admin_types=[AdminType.school]))
 ):
     activities = VoteService.get_active_activities(db)
     if not activities:
@@ -32,7 +33,11 @@ def get_active_activities_statistics(
     return VoteService.get_activity_vote_statistics(db, activity_id=activities[0]["id"])
 
 @router.post("/candidates/", response_model=CandidateResponse)
-def create_user(user: CandidateCreate, db: Session = Depends(get_db), _= check_roles(allowed_admin_types=["school"])):
+def create_user(
+    user: CandidateCreate, 
+    db: Session = Depends(get_db), 
+    _= Depends(check_roles(allowed_admin_types=[AdminType.school]))
+):
     try:
         db_user = VoteService.create_candidate(db, user)
         vote_count = db.query(Vote).filter(Vote.candidate_id == db_user.id).count()
@@ -76,7 +81,7 @@ def create_bulk_votes(
     candidate_ids: List[int] = Query(..., title="候选ID列表", example=[1,2,3]),
     activity_id: int = Query(..., title="活动ID"),
     db: Session = Depends(get_db),
-    _= check_roles(allowed_roles=["student"])
+    _= Depends(check_roles(allowed_roles=[UserRole.student]))
 ):
     try:
         auth_header = request.headers.get("Authorization")
@@ -151,7 +156,7 @@ def update_candidate(candidate_id: int, user: CandidateCreate, db: Session = Dep
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/candidates/{candidate_id}")
-def delete_candidate(candidate_id: int, db: Session = Depends(get_db), _= check_roles(allowed_admin_types=["school"])):
+def delete_candidate(candidate_id: int, db: Session = Depends(get_db), _= Depends(check_roles(allowed_admin_types=[AdminType.school]))):
     try:
         VoteService.delete_candidate(db, candidate_id)
         return {"message": "Candidate deleted successfully"}
@@ -164,7 +169,7 @@ def get_my_activity_votes(
     activity_id: int,
     request: Request,
     db: Session = Depends(get_db),
-    _= check_roles(allowed_roles=["student"])
+    _= Depends(check_roles(allowed_roles=[UserRole.student]))
 ):
     try:
         auth_header = request.headers.get("Authorization")
@@ -192,7 +197,7 @@ def get_vote_trends(db: Session = Depends(get_db)):
 @router.get("/statistics/total", response_model=TotalVoteStats)
 def get_total_vote_statistics(
     db: Session = Depends(get_db),
-    _= check_roles(allowed_admin_types=["school"])
+    _= Depends(check_roles(allowed_admin_types=[AdminType.school]))
 ):
     """获取所有活动的总投票统计数据，包括总投票数、总活动数和总候选人数"""
     return VoteService.get_total_votes_count(db)
@@ -202,7 +207,7 @@ def remove_candidate_from_activity(
     activity_id: int, 
     candidate_id: int, 
     db: Session = Depends(get_db),
-    _= check_roles(allowed_admin_types=["school"])
+    _= Depends(check_roles(allowed_admin_types=[AdminType.school]))
 ):
     """从活动中移除候选人，解除候选人与活动的关联"""
     try:
