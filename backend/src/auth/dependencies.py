@@ -1,6 +1,6 @@
 from typing import List, Optional
 from fastapi import Request, HTTPException
-from .service import AuthService, AdminType, RoleType as UserRole
+from .service import AuthService
 
 def check_roles(
     allowed_roles: Optional[List[str]] = None,

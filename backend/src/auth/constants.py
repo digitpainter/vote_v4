@@ -5,5 +5,7 @@ class AdminType:
 
 class UserRole:
     teacher = "teacher"
-    student = "student"
-    all = [teacher, student] 
+    undergraduate = "undergraduate"
+    graduate = "graduate"
+    phd = "phd"
+    all = [teacher, undergraduate, graduate, phd] 
