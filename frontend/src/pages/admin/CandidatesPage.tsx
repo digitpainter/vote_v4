@@ -263,7 +263,7 @@ export default function CandidatesPage() {
       title: '候选人',
       dataIndex: 'name',
       key: 'name',
-      width: 120,
+      width: 200,
       ...getColumnSearchProps({
         dataIndex: 'name',
         placeholder: '搜索候选人姓名'
@@ -279,7 +279,7 @@ export default function CandidatesPage() {
       title: '所属学院',
       dataIndex: 'college_id',
       key: 'college_name',
-      width: 150,
+      width: 200,
       ...getColumnSearchProps({
         dataIndex: 'college_name',
         placeholder: '搜索学院名称'
@@ -328,6 +328,7 @@ export default function CandidatesPage() {
       key: 'vote_count',
       sorter: (a, b) => a.vote_count - b.vote_count,
       render: (votes) => <Tag color="blue">{votes}</Tag>,
+      width: 150,
     },
     {
       title: '操作',
@@ -352,6 +353,7 @@ export default function CandidatesPage() {
           </Tooltip>
         </Space>
       ),
+      width: 150,
     },
   ];
 

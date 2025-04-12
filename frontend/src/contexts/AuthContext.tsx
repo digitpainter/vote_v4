@@ -93,6 +93,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
       console.debug(`[API Data][${new Date().toISOString()}] 用户信息刷新成功，data: ${data}`);
       console.debug(`[API Data][${new Date().toISOString()}] 用户信息刷新成功，data: ${data.username}`);
       console.debug(`[API Data][${new Date().toISOString()}] 用户信息刷新成功，admin_college_id: ${data.admin_college_id}`);
+      console.debug(`[API Data][${new Date().toISOString()}] 用户信息刷新成功，admin_type: ${data.admin_type}`);
       setIsAuthenticated(true);
       setStaffId(data.staff_id);
       setName(data.username);

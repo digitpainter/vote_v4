@@ -60,7 +60,15 @@ export default function Sidebar({ onClose }: SidebarProps = {}) {
   };
 
   // 判断是否是管理员
-  const isAdmin = adminType !== undefined;
+  const isAdmin = adminType != undefined;
+  console.log("adminType");
+  console.log(adminType);
+  console.log("isAdmin");
+  console.log(isAdmin);
+  // 判断是否有权限访问统计页
+  const canAccessStats = role === UserRole.TEACHER || isAdmin;
+  console.log("canAccessStats");
+  console.log(canAccessStats);
 
   return (
     <div className="h-full flex flex-col">
@@ -73,11 +81,12 @@ export default function Sidebar({ onClose }: SidebarProps = {}) {
               icon: <HomeOutlined />,
               label: <Link to="/" onClick={handleMenuClick}>投票</Link> 
             },
-            { 
+            // 只向教师和管理员显示统计选项
+            ...(canAccessStats ? [{ 
               key: '2', 
               icon: <BarChartOutlined />,
               label: <Link to="/stats" onClick={handleMenuClick}>统计</Link> 
-            },
+            }] : []),
             // 仅向管理员显示管理选项
             ...(isAdmin ? [{ 
               key: '3', 
