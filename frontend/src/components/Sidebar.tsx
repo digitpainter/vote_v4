@@ -3,13 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { UserRole, AdminType } from '../types/auth';
 import { Link } from 'react-router';
 import { useState, useEffect } from 'react';
-import { 
-  HomeOutlined,
-  BarChartOutlined,
-  SettingOutlined,
-  UserOutlined
-} from '@ant-design/icons';
 import { getAllCollegeInfo, CollegeInfo, getCollegeNameById } from '../api/college';
+import { getMainMenuItems } from '../constants/menuItems';
 
 const roleMap: Record<UserRole, string> = {
   [UserRole.UNDERGRADUATE]: '本科生',
@@ -70,48 +65,15 @@ export default function Sidebar({ onClose }: SidebarProps = {}) {
   console.log("canAccessStats");
   console.log(canAccessStats);
 
+  // 获取菜单项
+  const menuItems = getMainMenuItems(handleMenuClick, canAccessStats, isAdmin);
+
   return (
     <div className="h-full flex flex-col">
       <div className="flex-1">
         <Menu
           mode="inline"
-          items={[
-            { 
-              key: '1', 
-              icon: <HomeOutlined />,
-              label: <Link to="/" onClick={handleMenuClick}>投票</Link> 
-            },
-            // 只向教师和管理员显示统计选项
-            ...(canAccessStats ? [{ 
-              key: '2', 
-              icon: <BarChartOutlined />,
-              label: <Link to="/stats" onClick={handleMenuClick}>统计</Link> 
-            }] : []),
-            // 仅向管理员显示管理选项
-            ...(isAdmin ? [{ 
-              key: '3', 
-              icon: <SettingOutlined />,
-              label: <Link to="/admin" onClick={handleMenuClick}>管理后台</Link>,
-              children: [
-                { 
-                  key: '3-1', 
-                  label: <Link to="/admin/dashboard" onClick={handleMenuClick}>仪表盘</Link> 
-                },
-                { 
-                  key: '3-2', 
-                  label: <Link to="/admin/activities" onClick={handleMenuClick}>活动管理</Link> 
-                },
-                { 
-                  key: '3-3', 
-                  label: <Link to="/admin/candidates" onClick={handleMenuClick}>候选人管理</Link> 
-                },
-                { 
-                  key: '3-4', 
-                  label: <Link to="/admin/data" onClick={handleMenuClick}>数据下载</Link> 
-                },
-              ]
-            }] : []),
-          ]}
+          items={menuItems}
         />
       </div>
       

@@ -1,16 +1,8 @@
 import { Layout, Menu, Typography, Avatar, Space, Breadcrumb } from 'antd';
-import { 
-  AppstoreOutlined, 
-  UserOutlined, 
-  DownloadOutlined, 
-  DashboardOutlined, 
-  LogoutOutlined,
-  SettingOutlined,
-  TeamOutlined
-} from '@ant-design/icons';
 import { Outlet, Link, useLocation } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { useEffect, useState } from 'react';
+import { adminMenuItems } from '../constants/menuItems';
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Title, Text } = Typography;
@@ -27,40 +19,6 @@ export default function AdminLayout() {
     setSelectedKey(path);
   }, [location.pathname]);
 
-  // 菜单项定义
-  const menuItems = [
-    {
-      key: 'dashboard',
-      icon: <DashboardOutlined />,
-      label: <Link to="/admin/dashboard">仪表盘</Link>,
-    },
-    {
-      key: 'activities',
-      icon: <AppstoreOutlined />,
-      label: <Link to="/admin/activities">活动管理</Link>,
-    },
-    {
-      key: 'candidates',
-      icon: <UserOutlined />,
-      label: <Link to="/admin/candidates">候选人管理</Link>,
-    },
-    {
-      key: 'admins',
-      icon: <TeamOutlined />,
-      label: <Link to="/admin/admins">管理员权限</Link>,
-    },
-    {
-      key: 'data',
-      icon: <DownloadOutlined />,
-      label: <Link to="/admin/data">数据下载</Link>,
-    },
-    {
-      key: 'settings',
-      icon: <SettingOutlined />,
-      label: <Link to="/admin/settings">系统设置</Link>,
-    },
-  ];
-
   // 生成面包屑
   const getBreadcrumb = () => {
     const pathSnippets = location.pathname.split('/').filter((i: string) => i);
@@ -71,7 +29,7 @@ export default function AdminLayout() {
 
     if (pathSnippets.length > 1) {
       const key = pathSnippets[1];
-      const item = menuItems.find(item => item.key === key);
+      const item = adminMenuItems.find(item => item.key === key);
       if (item) {
         breadcrumbItems.push({ title: item.label });
       }
@@ -110,7 +68,7 @@ export default function AdminLayout() {
           defaultSelectedKeys={['dashboard']} 
           selectedKeys={[selectedKey]}
           mode="inline" 
-          items={menuItems} 
+          items={adminMenuItems} 
         />
       </Sider>
       <Layout>
