@@ -17,7 +17,6 @@ export const fetchActiveActivities = async (): Promise<Activity[]> => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
     });
 
     return response.data;
@@ -46,7 +45,6 @@ export const fetchCandidatesByIds = async (candidateIds: string[]): Promise<Cand
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
     });
 
     const candidatesData = response.data;

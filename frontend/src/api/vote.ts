@@ -380,3 +380,55 @@ export const uploadImage = async (file: File): Promise<string> => {
     throw error;
   }
 };
+
+/**
+ * 创建候选人
+ * @param candidateData 候选人数据
+ * @returns 创建的候选人信息
+ */
+export const createCandidate = async (candidateData: any) => {
+  try {
+    const response = await axios.post(`${BASE_URL}/vote/candidates/`, candidateData, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      withCredentials: true
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error('[API Error] 创建候选人失败:', error);
+    if (axios.isAxiosError(error) && error.response) {
+      const message = handleApiError(error.response.status, error.response.data);
+      throw new Error('创建候选人失败: ' + message);
+    }
+    throw error;
+  }
+};
+
+/**
+ * 删除候选人
+ * @param candidateId 候选人ID
+ * @returns 是否删除成功
+ */
+export const deleteCandidate = async (candidateId: number) => {
+  try {
+    await axios.delete(`${BASE_URL}/vote/candidates/${candidateId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      withCredentials: true
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('[API Error] 删除候选人失败:', error);
+    if (axios.isAxiosError(error) && error.response) {
+      const message = handleApiError(error.response.status, error.response.data);
+      throw new Error('删除候选人失败: ' + message);
+    }
+    throw error;
+  }
+};
