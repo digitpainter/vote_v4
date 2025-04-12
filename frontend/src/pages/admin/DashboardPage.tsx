@@ -8,10 +8,10 @@ import {
 } from '@ant-design/icons';
 import {
   fetchTotalStats,
-  fetchRecentActivities,
-  DashboardStats,
-  RecentActivity
+  DashboardStats
 } from '../../api/dashboard';
+import { getAdminLogs } from '../../api/adminLog';
+import { AdminLog, AdminActionType } from '../../types/adminLog';
 
 const { Title, Text } = Typography;
 
@@ -24,8 +24,9 @@ export default function DashboardPage() {
     activeActivities: 0
   });
   
-  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const [recentLogs, setRecentLogs] = useState<AdminLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [logsLoading, setLogsLoading] = useState(true);
 
   // 获取统计数据
   const fetchStats = async () => {
@@ -50,11 +51,17 @@ export default function DashboardPage() {
     }
   };
 
-  // 加载最近活动数据
-  const loadRecentActivities = () => {
-    // 获取最近活动数据
-    const activities = fetchRecentActivities();
-    setRecentActivities(activities);
+  // 加载最近管理员日志数据
+  const loadRecentLogs = async () => {
+    try {
+      setLogsLoading(true);
+      const logs = await getAdminLogs({ limit: 5 });
+      setRecentLogs(logs);
+      setLogsLoading(false);
+    } catch (error) {
+      console.error('获取管理员日志失败:', error);
+      setLogsLoading(false);
+    }
   };
 
   // 页面加载时获取数据
@@ -62,21 +69,23 @@ export default function DashboardPage() {
     // 获取实际统计数据
     fetchStats();
     
-    // 加载模拟的最近活动数据
-    loadRecentActivities();
+    // 加载管理员日志数据
+    loadRecentLogs();
   }, []);
 
   // 获取图标颜色
-  const getActivityIcon = (type: string) => {
-    switch(type) {
-      case 'vote':
+  const getActivityIcon = (actionType: AdminActionType) => {
+    switch(actionType) {
+      case AdminActionType.VIEW:
         return <Badge status="processing" color="blue" />;
-      case 'create':
+      case AdminActionType.CREATE:
         return <Badge status="success" />;
-      case 'update':
+      case AdminActionType.UPDATE:
         return <Badge status="warning" />;
-      case 'delete':
+      case AdminActionType.DELETE:
         return <Badge status="error" />;
+      case AdminActionType.EXPORT:
+        return <Badge status="default" color="purple" />;
       default:
         return <Badge status="default" />;
     }
@@ -137,21 +146,22 @@ export default function DashboardPage() {
           <Card 
             title="最近活动" 
             className="h-full" 
-            loading={loading}
+            loading={logsLoading}
           >
             <Timeline
-              items={recentActivities.map(activity => ({
-                color: activity.type === 'vote' ? 'blue' : 
-                       activity.type === 'create' ? 'green' : 
-                       activity.type === 'update' ? 'orange' : 'red',
+              items={recentLogs.map(log => ({
+                color: log.action_type === AdminActionType.VIEW ? 'blue' : 
+                       log.action_type === AdminActionType.CREATE ? 'green' : 
+                       log.action_type === AdminActionType.UPDATE ? 'orange' : 
+                       log.action_type === AdminActionType.DELETE ? 'red' : 'gray',
                 children: (
                   <div>
                     <div className="flex items-center gap-2">
-                      {getActivityIcon(activity.type)}
-                      <Text strong>{activity.name}</Text>
-                      <Text type="secondary" className="text-xs">{activity.time}</Text>
+                      {getActivityIcon(log.action_type)}
+                      <Text strong>{log.admin_name}</Text>
+                      <Text type="secondary" className="text-xs">{new Date(log.created_at).toLocaleString()}</Text>
                     </div>
-                    <div className="ml-5">{activity.description}</div>
+                    <div className="ml-5">{log.description}</div>
                   </div>
                 )
               }))}
