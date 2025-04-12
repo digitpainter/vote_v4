@@ -7,10 +7,13 @@ import { ContentArea } from './components/ContentArea';
 import { AuthProvider } from './contexts/AuthContext';
 import { Routes, Route } from 'react-router';
 import ProtectedRoute from './components/ProtectedRoute';
+import RoleBasedRoute from './components/RoleBasedRoute';
 import CASLoginPage from './pages/CASLoginPage'
 import CasCallbackPage from './pages/CasCallbackPage';
 import StatsPage from './pages/StatsPage';
+import AccessDeniedPage from './pages/AccessDeniedPage';
 import { SidebarController } from './components/SidebarController';
+import { UserRole, AdminType } from './types/auth';
 
 // 导入管理后台页面
 import AdminLayout from './pages/AdminLayout';
@@ -31,17 +34,21 @@ function App() {
             <Routes>
               <Route path="/login" element={<CASLoginPage />} />
               <Route path="/cas-callback" element={<CasCallbackPage />} />
+              <Route path="/access-denied" element={<AccessDeniedPage />} />
               <Route path="/stats" element={
-                <ProtectedRoute>
+                <RoleBasedRoute 
+                  allowedRoles={[UserRole.TEACHER]} 
+                  requiresAdmin={true}
+                >
                   <StatsPage />
-                </ProtectedRoute>
+                </RoleBasedRoute>
               } />
               
               {/* 管理后台路由 */}
               <Route path="/admin" element={
-                <ProtectedRoute>
+                <RoleBasedRoute requiresAdmin={true}>
                   <AdminLayout />
-                </ProtectedRoute>
+                </RoleBasedRoute>
               }>
                 <Route index element={<DashboardPage />} />
                 <Route path="dashboard" element={<DashboardPage />} />
