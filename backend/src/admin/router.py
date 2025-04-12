@@ -7,6 +7,8 @@ from .service import AdminService
 from ..auth.constants import AdminType, UserRole 
 from ..database import get_db
 from ..auth.dependencies import check_roles
+from ..admin_log.service import AdminLogService
+from ..admin_log.schemas import AdminActionType
 
 router = APIRouter()
 
@@ -29,7 +31,20 @@ async def create_administrator(
                     detail="院级管理员只能创建本学院的管理员"
                 )
         
-        return AdminService.create_admin(db, admin)
+        new_admin = AdminService.create_admin(db, admin)
+        
+        # 记录操作日志
+        AdminLogService.log_admin_action(
+            db=db,
+            request=request,
+            user_session=user_session,
+            action_type=AdminActionType.CREATE,
+            resource_type="administrator",
+            resource_id=admin.stuff_id,
+            description=f"创建管理员 {admin.stuff_id}，类型: {admin.admin_type}"
+        )
+        
+        return new_admin
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -50,6 +65,17 @@ async def get_administrator(
     if user_session.admin_type == AdminType.college and admin.college_id != user_session.admin_college_id:
         raise HTTPException(status_code=403, detail="院级管理员只能查看本学院的管理员")
     
+    # 记录操作日志
+    AdminLogService.log_admin_action(
+        db=db,
+        request=request,
+        user_session=user_session,
+        action_type=AdminActionType.VIEW,
+        resource_type="administrator",
+        resource_id=stuff_id,
+        description=f"查看管理员 {stuff_id} 的详细信息"
+    )
+    
     return admin
 
 @router.get("/", response_model=List[AdminResponse])
@@ -65,6 +91,16 @@ async def list_administrators(
     # 如果是院级管理员，只返回本学院的管理员
     if user_session.admin_type == AdminType.college:
         admins = [a for a in admins if a.college_id == user_session.admin_college_id]
+    
+    # 记录操作日志
+    AdminLogService.log_admin_action(
+        db=db,
+        request=request,
+        user_session=user_session,
+        action_type=AdminActionType.VIEW,
+        resource_type="administrators",
+        description="查看管理员列表"
+    )
     
     return admins
 
@@ -95,6 +131,18 @@ async def update_administrator(
                 raise HTTPException(status_code=403, detail="院级管理员不能将管理员分配到其他学院")
         
         updated_admin = AdminService.update_admin(db, stuff_id, admin)
+        
+        # 记录操作日志
+        AdminLogService.log_admin_action(
+            db=db,
+            request=request,
+            user_session=user_session,
+            action_type=AdminActionType.UPDATE,
+            resource_type="administrator",
+            resource_id=stuff_id,
+            description=f"更新管理员 {stuff_id} 的信息"
+        )
+        
         return updated_admin
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -120,6 +168,18 @@ async def delete_administrator(
             raise HTTPException(status_code=403, detail="院级管理员只能删除本学院的管理员")
         
         AdminService.delete_admin(db, stuff_id)
+        
+        # 记录操作日志
+        AdminLogService.log_admin_action(
+            db=db,
+            request=request,
+            user_session=user_session,
+            action_type=AdminActionType.DELETE,
+            resource_type="administrator",
+            resource_id=stuff_id,
+            description=f"删除管理员 {stuff_id}"
+        )
+        
         return {"message": "管理员删除成功"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

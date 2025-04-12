@@ -94,3 +94,26 @@ class Administrator(Base):
     __table_args__ = (
         UniqueConstraint('stuff_id', 'admin_type', 'college_id', name='uq_admin'),
     )
+
+class AdminActionType(str, Enum):
+    CREATE = "create"
+    UPDATE = "update"
+    DELETE = "delete"
+    VIEW = "view"
+    EXPORT = "export"
+    OTHER = "other"
+
+class AdminLog(Base):
+    __tablename__ = "admin_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    admin_id: Mapped[str] = mapped_column(String(50), index=True)  # 管理员工号
+    admin_name: Mapped[str] = mapped_column(String(50))  # 管理员姓名
+    admin_type: Mapped[str] = mapped_column(String(10))  # 管理员类型
+    action_type: Mapped[AdminActionType] = mapped_column(String(20))  # 操作类型
+    resource_type: Mapped[str] = mapped_column(String(50))  # 资源类型，如activity，candidate等
+    resource_id: Mapped[str] = mapped_column(String(50), nullable=True)  # 资源ID
+    description: Mapped[str] = mapped_column(String(500))  # 操作描述
+    ip_address: Mapped[str] = mapped_column(String(50), nullable=True)  # IP地址
+    user_agent: Mapped[str] = mapped_column(String(200), nullable=True)  # 用户代理
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

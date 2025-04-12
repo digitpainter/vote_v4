@@ -43,7 +43,7 @@ export const updateActivity = async (activityId: number, activityData: any) => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     
     return response.data;
@@ -69,7 +69,7 @@ export const createActivity = async (activityData: any) => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     
     return response.data;
@@ -95,7 +95,7 @@ export const deleteActivity = async (activityId: number) => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     
     return true;
@@ -120,7 +120,7 @@ export const getAllCandidates = async () => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     
     return response.data;
@@ -149,7 +149,7 @@ export const getCandidatesByIds = async (candidateIds: number[]) => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     
     return response.data;
@@ -176,7 +176,7 @@ export const updateCandidate = async (candidateId: number, candidateData: any) =
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     
     return response.data;
@@ -205,7 +205,7 @@ export const uploadCandidateImage = async (candidateId: number, imageFile: File)
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     
     return response.data;
@@ -236,7 +236,7 @@ export const submitVotes = async (activityId: Activity['id'], candidateIds: stri
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     
     return response.data;
@@ -262,7 +262,7 @@ export const getActivityVotes = async (activityId: number) => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     
     return response.data;
@@ -287,7 +287,7 @@ export const getActiveStatistics = async () => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     
     return response.data;
@@ -312,7 +312,7 @@ export const getVoteTrends = async (): Promise<VoteTrendData> => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     
     return response.data;
@@ -339,7 +339,7 @@ export const removeCandidateFromActivity = async (activityId: number, candidateI
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     
     return true;
@@ -367,7 +367,7 @@ export const uploadImage = async (file: File): Promise<string> => {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     
     return response.data.image_url;
@@ -393,7 +393,7 @@ export const createCandidate = async (candidateData: any) => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     
     return response.data;
@@ -419,7 +419,7 @@ export const deleteCandidate = async (candidateId: number) => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     
     return true;

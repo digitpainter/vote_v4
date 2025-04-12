@@ -16,8 +16,10 @@ from ..database import get_db
 from ..auth.dependencies import check_roles
 from ..auth.service import AuthService
 from ..auth.constants import AdminType, UserRole
-from ..models import Vote, VoteActivity
+from ..models import Vote, VoteActivity, Candidate
 from ..config import IMAGES_DIR, IMAGE_CONFIG, BASE_URL
+from ..admin_log.service import AdminLogService
+from ..admin_log.schemas import AdminActionType
 
 router = APIRouter()
 
@@ -35,6 +37,7 @@ def get_active_activities_statistics(
 @router.post("/candidates/", response_model=CandidateResponse)
 def create_user(
     user: CandidateCreate, 
+    request: Request,
     db: Session = Depends(get_db), 
     user_session = Depends(check_roles(allowed_admin_types=[AdminType.school, AdminType.college]))
 ):
@@ -48,6 +51,18 @@ def create_user(
                 )
         
         db_user = VoteService.create_candidate(db, user)
+        
+        # 记录操作日志
+        AdminLogService.log_admin_action(
+            db=db,
+            request=request,
+            user_session=user_session,
+            action_type=AdminActionType.CREATE,
+            resource_type="candidate",
+            resource_id=str(db_user.id),
+            description=f"创建候选人 {db_user.name}，学院: {db_user.college_name}"
+        )
+        
         vote_count = db.query(Vote).filter(Vote.candidate_id == db_user.id).count()
         return CandidateResponse(
             id=db_user.id,
@@ -60,7 +75,6 @@ def create_user(
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-
 
 @router.get("/candidates/batch", response_model=List[CandidateResponse])
 def get_candidates_batch(
@@ -111,11 +125,25 @@ def create_bulk_votes(
 @router.post("/activities/", response_model=ActivityResponse)
 def create_activity(
     activity: ActivityCreate, 
+    request: Request,
     db: Session = Depends(get_db),
-    _= Depends(check_roles(allowed_admin_types=[AdminType.school]))
+    user_session = Depends(check_roles(allowed_admin_types=[AdminType.school]))
 ):
     try:
-        return VoteService.create_activity(db, activity)
+        result = VoteService.create_activity(db, activity)
+        
+        # 记录操作日志
+        AdminLogService.log_admin_action(
+            db=db,
+            request=request,
+            user_session=user_session,
+            action_type=AdminActionType.CREATE,
+            resource_type="activity",
+            resource_id=str( result['id']),
+            description=f"创建投票活动 { result['title']}"
+        )
+        
+        return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -137,22 +165,53 @@ def get_active_activities(
 def update_activity(
     activity_id: int, 
     activity: ActivityCreate, 
+    request: Request,
     db: Session = Depends(get_db),
-    _= Depends(check_roles(allowed_admin_types=[AdminType.school]))
+    user_session = Depends(check_roles(allowed_admin_types=[AdminType.school]))
 ):
     try:
-        return VoteService.update_activity(db, activity_id, activity)
+        result = VoteService.update_activity(db, activity_id, activity)
+        
+        # 记录操作日志
+        AdminLogService.log_admin_action(
+            db=db,
+            request=request,
+            user_session=user_session,
+            action_type=AdminActionType.UPDATE,
+            resource_type="activity",
+            resource_id=str(activity_id),
+            description=f"更新投票活动 {result['title']}"
+        )
+        
+        return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/activities/{activity_id}")
 def delete_activity(
     activity_id: int, 
+    request: Request,
     db: Session = Depends(get_db),
-    _= Depends(check_roles(allowed_admin_types=[AdminType.school]))
+    user_session = Depends(check_roles(allowed_admin_types=[AdminType.school]))
 ):
     try:
+        # 获取活动名称用于日志记录
+        activity = db.query(VoteActivity).filter(VoteActivity.id == activity_id).first()
+        activity_title = activity.title if activity else f"ID为{activity_id}的活动"
+        
         VoteService.delete_activity(db, activity_id)
+        
+        # 记录操作日志
+        AdminLogService.log_admin_action(
+            db=db,
+            request=request,
+            user_session=user_session,
+            action_type=AdminActionType.DELETE,
+            resource_type="activity",
+            resource_id=str(activity_id),
+            description=f"删除投票活动 {activity_title}"
+        )
+        
         return {"message": "Activity deleted successfully"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -161,6 +220,7 @@ def delete_activity(
 def update_candidate(
     candidate_id: int, 
     user: CandidateCreate, 
+    request: Request,
     db: Session = Depends(get_db),
     user_session = Depends(check_roles(allowed_admin_types=[AdminType.school, AdminType.college]))
 ):
@@ -187,6 +247,18 @@ def update_candidate(
                 )
         
         db_candidate = VoteService.update_candidate(db, candidate_id, user)
+        
+        # 记录操作日志
+        AdminLogService.log_admin_action(
+            db=db,
+            request=request,
+            user_session=user_session,
+            action_type=AdminActionType.UPDATE,
+            resource_type="candidate",
+            resource_id=str(candidate_id),
+            description=f"更新候选人 {db_candidate.name} 的信息"
+        )
+        
         vote_count = db.query(Vote).filter(Vote.candidate_id == candidate_id).count()
         return CandidateResponse(
             id=db_candidate.id,
@@ -203,11 +275,28 @@ def update_candidate(
 @router.delete("/candidates/{candidate_id}")
 def delete_candidate(
     candidate_id: int, 
+    request: Request,
     db: Session = Depends(get_db), 
-    _= Depends(check_roles(allowed_admin_types=[AdminType.school]))
+    user_session = Depends(check_roles(allowed_admin_types=[AdminType.school]))
 ):
     try:
+        # 获取候选人信息用于日志记录
+        candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+        candidate_name = candidate.name if candidate else f"ID为{candidate_id}的候选人"
+        
         VoteService.delete_candidate(db, candidate_id)
+        
+        # 记录操作日志
+        AdminLogService.log_admin_action(
+            db=db,
+            request=request,
+            user_session=user_session,
+            action_type=AdminActionType.DELETE,
+            resource_type="candidate",
+            resource_id=str(candidate_id),
+            description=f"删除候选人 {candidate_name}"
+        )
+        
         return {"message": "Candidate deleted successfully"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -223,38 +312,97 @@ def get_my_activity_votes(
     try:
         voter_id = user_session.staff_id
         
+        # 获取活动信息用于日志记录
+        activity = db.query(VoteActivity).filter(VoteActivity.id == activity_id).first()
+        activity_title = activity.title if activity else f"ID为{activity_id}的活动"
+        
         votes = VoteService.get_activity_votes(db, voter_id, activity_id)
+        
+        # 记录操作日志
+        AdminLogService.log_admin_action(
+            db=db,
+            request=request,
+            user_session=user_session,
+            action_type=AdminActionType.VIEW,
+            resource_type="my_votes",
+            resource_id=str(activity_id),
+            description=f"查看在活动 {activity_title} 中的投票记录"
+        )
+        
         return [vote[0] for vote in votes]
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/vote-trends", response_model=VoteTrendResponse)
 def get_vote_trends(
+    request: Request,
     db: Session = Depends(get_db),
-    _= Depends(check_roles())  # 所有登录的人
+    user_session = Depends(check_roles())  # 所有登录的人
 ):
     """获取投票趋势数据，包括每日投票总数和各候选人投票数"""
+    
+    # 记录操作日志
+    AdminLogService.log_admin_action(
+        db=db,
+        request=request,
+        user_session=user_session,
+        action_type=AdminActionType.VIEW,
+        resource_type="vote_trends",
+        description="查看投票趋势数据"
+    )
+    
     return VoteService.get_vote_trends(db)
 
 @router.get("/statistics/total", response_model=TotalVoteStats)
 def get_total_vote_statistics(
+    request: Request,
     db: Session = Depends(get_db),
-    _= Depends(check_roles())  # 所有登录的人
+    user_session = Depends(check_roles())  # 所有登录的人
 ):
     """获取所有活动的总投票统计数据，包括总投票数、总活动数和总候选人数"""
+    
+    # 记录操作日志
+    AdminLogService.log_admin_action(
+        db=db,
+        request=request,
+        user_session=user_session,
+        action_type=AdminActionType.VIEW,
+        resource_type="total_statistics",
+        description="查看投票总体统计数据"
+    )
+    
     return VoteService.get_total_votes_count(db)
 
 @router.delete("/activities/{activity_id}/candidates/{candidate_id}")
 def remove_candidate_from_activity(
     activity_id: int, 
-    candidate_id: int, 
+    candidate_id: int,
+    request: Request,
     db: Session = Depends(get_db),
-    _= Depends(check_roles(allowed_admin_types=[AdminType.school]))
+    user_session = Depends(check_roles(allowed_admin_types=[AdminType.school]))
 ):
-    """从活动中移除候选人，解除候选人与活动的关联"""
     try:
+        # 获取候选人和活动信息用于日志记录
+        activity = db.query(VoteActivity).filter(VoteActivity.id == activity_id).first()
+        candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+        
+        activity_title = activity.title if activity else f"ID为{activity_id}的活动"
+        candidate_name = candidate.name if candidate else f"ID为{candidate_id}的候选人"
+        
         VoteService.remove_candidate_from_activity(db, activity_id, candidate_id)
-        return {"message": "候选人已从活动中移除"}
+        
+        # 记录操作日志
+        AdminLogService.log_admin_action(
+            db=db,
+            request=request,
+            user_session=user_session,
+            action_type=AdminActionType.DELETE,
+            resource_type="activity_candidate",
+            resource_id=f"{activity_id}_{candidate_id}",
+            description=f"从活动 {activity_title} 中移除候选人 {candidate_name}"
+        )
+        
+        return {"message": f"Candidate {candidate_id} removed from activity {activity_id}"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -262,31 +410,40 @@ def remove_candidate_from_activity(
 async def export_vote_data(
     activity_id: int = Query(..., description="活动ID"),
     export_type: str = Query(..., description="导出数据类型"),
+    format: str = Query(..., description="导出格式"),
     college_id: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     db: Session = Depends(get_db),
+    request: Request = None,
     user_session = Depends(check_roles(allowed_admin_types=[AdminType.school, AdminType.college]))
 ):
+    # 院级管理员只能导出本学院的数据
+    if user_session.admin_type == AdminType.college:
+        if college_id and college_id != user_session.admin_college_id:
+            raise HTTPException(status_code=403, detail="院级管理员只能导出本学院的数据")
+        college_id = user_session.admin_college_id
+    
     try:
-        # 如果是院级管理员，需要检查学院信息
-        if user_session.admin_type == AdminType.college:
-            # 如果传入了学院ID，确保只能导出本学院数据
-            if college_id and college_id != user_session.admin_college_id:
-                raise HTTPException(
-                    status_code=403, 
-                    detail="院级管理员只能导出本学院的数据"
-                )
-            
-            # 如果没有传入学院ID，强制设置为管理员所属学院
-            college_id = user_session.admin_college_id
-            
-        # 获取活动详情
+        # 获取活动信息用于日志记录
         activity = db.query(VoteActivity).filter(VoteActivity.id == activity_id).first()
+        activity_title = activity.title if activity else f"ID为{activity_id}的活动"
+        
+        # 检查活动是否存在
         if not activity:
             raise HTTPException(status_code=404, detail="活动不存在")
+            
+        # 记录操作日志
+        AdminLogService.log_admin_action(
+            db=db,
+            request=request,
+            user_session=user_session,
+            action_type=AdminActionType.EXPORT,
+            resource_type=f"activity_{export_type}",
+            resource_id=str(activity_id),
+            description=f"导出活动 {activity_title} 的{export_type}数据，格式: {format}"
+        )
         
-        # 根据导出类型获取数据
         if export_type == 'vote_records':
             data = await VoteService.get_vote_records(db, activity_id, college_id, start_date, end_date)
         elif export_type == 'candidate_stats':
@@ -316,6 +473,7 @@ async def preview_vote_data(
     end_date: Optional[str] = None,
     limit: int = Query(10, description="预览记录数上限"),
     db: Session = Depends(get_db),
+    request: Request = None,
     user_session = Depends(check_roles(allowed_admin_types=[AdminType.school, AdminType.college]))
 ):
     try:
@@ -335,6 +493,17 @@ async def preview_vote_data(
         activity = db.query(VoteActivity).filter(VoteActivity.id == activity_id).first()
         if not activity:
             raise HTTPException(status_code=404, detail="活动不存在")
+        
+        # 记录操作日志
+        AdminLogService.log_admin_action(
+            db=db,
+            request=request,
+            user_session=user_session,
+            action_type=AdminActionType.VIEW,
+            resource_type=f"preview_{export_type}",
+            resource_id=str(activity_id),
+            description=f"预览活动 {activity.title} 的{export_type}数据"
+        )
         
         # 根据预览类型获取数据
         if export_type == 'vote_records':
@@ -420,6 +589,7 @@ async def get_colleges(
 @router.post("/upload-image/", response_model=dict)
 async def upload_image(
     file: UploadFile = File(...),
+    request: Request = None,
     db: Session = Depends(get_db),
     user_session = Depends(check_roles(allowed_admin_types=[AdminType.school, AdminType.college]))
 ):
@@ -471,5 +641,20 @@ async def upload_image(
     
     # 构建完整URL
     image_url = f"{BASE_URL}/uploads/images/{new_filename}"
+    
+    # 记录操作日志
+    try:
+        AdminLogService.log_admin_action(
+            db=db,
+            request=request,
+            user_session=user_session,
+            action_type=AdminActionType.CREATE,
+            resource_type="image",
+            resource_id=new_filename,
+            description=f"上传图片 {file.filename}，保存为 {new_filename}"
+        )
+    except Exception as e:
+        # 记录日志失败不影响上传功能
+        print(f"记录图片上传日志失败: {str(e)}")
     
     return {"image_url": image_url, "filename": new_filename}

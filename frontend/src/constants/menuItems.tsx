@@ -7,7 +7,8 @@ import {
   AppstoreOutlined,
   TeamOutlined,
   DownloadOutlined,
-  DashboardOutlined
+  DashboardOutlined,
+  FileTextOutlined
 } from '@ant-design/icons';
 
 // 管理后台菜单项
@@ -36,6 +37,11 @@ export const adminMenuItems = [
     key: 'data',
     icon: <DownloadOutlined />,
     label: <Link to="/admin/data">数据下载</Link>,
+  },
+  {
+    key: 'logs',
+    icon: <FileTextOutlined />,
+    label: <Link to="/admin/logs">操作日志</Link>,
   },
   {
     key: 'settings',

@@ -13,6 +13,7 @@ from pathlib import Path
 from .auth.router import router as auth_router
 from .admin.router import router as admin_router
 from .vote.router import router as vote_router
+from .admin_log.router import router as admin_log_router
 from .database import init_db
 from backend.src import database
 from .config import UPLOAD_DIR
@@ -27,6 +28,7 @@ app = FastAPI(title="Vote API")
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(admin_router, prefix="/admin", tags=["admin"])
 app.include_router(vote_router, prefix="/vote", tags=["vote"])
+app.include_router(admin_log_router, prefix="/admin-logs", tags=["admin-logs"])
 
 # Initialize database tables
 init_db()

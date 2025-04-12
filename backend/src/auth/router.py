@@ -9,7 +9,9 @@ from urllib.parse import urlencode
 import re
 
 from .schemas import UserSession, CASResponse
-from ..database import SessionLocal
+from ..database import SessionLocal, get_db
+from ..admin_log.service import AdminLogService
+from ..admin_log.schemas import AdminActionType
 
 router = APIRouter()
 
@@ -17,14 +19,6 @@ from .config import CAS_SERVER_URL, SERVICE_URL, VOTE_MAIN_URL
 from .service import AuthService
 
 # Session storage moved to AuthService class
-
-# Dependency to get database session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 @router.get("/cas-login")
 async def cas_login():
@@ -37,7 +31,7 @@ async def cas_login():
     return RedirectResponse(url=login_url)
 
 @router.get("/cas-callback")
-async def cas_callback(ticket: str, request: Request, response: Response):
+async def cas_callback(ticket: str, request: Request, response: Response, db: Session = Depends(get_db)):
     try:
         async with httpx.AsyncClient() as client:
             debug(f"开始CAS票据验证流程，ticket参数接收成功: {ticket}")
@@ -57,6 +51,24 @@ async def cas_callback(ticket: str, request: Request, response: Response):
             user_info = data.get('user')
             session = AuthService.create_user_session(user_info)
             
+            # 记录用户登录操作
+            if session and hasattr(session, 'staff_id') and hasattr(session, 'username'):
+                staff_id = session.staff_id
+                username = session.username
+                try:
+                    # 记录登录操作日志
+                    AdminLogService.log_admin_action(
+                        db=db,
+                        request=request,
+                        user_session=session,
+                        action_type=AdminActionType.OTHER,
+                        resource_type="auth",
+                        description=f"用户 {username}({staff_id}) 登录系统"
+                    )
+                except Exception as e:
+                    # 记录日志失败不应影响主要业务逻辑
+                    debug(f"记录登录日志失败: {str(e)}")
+            
             return {
                 "authenticated": True,
                 "access_token": session.access_token,
@@ -73,7 +85,7 @@ async def cas_callback(ticket: str, request: Request, response: Response):
         }
 
 @router.get("/users/me")
-async def get_current_user(request: Request):
+async def get_current_user(request: Request, db: Session = Depends(get_db)):
     """Get current authenticated user information"""
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
@@ -101,11 +113,34 @@ async def get_current_user(request: Request):
     }
 
 @router.post("/logout")
-async def logout(request: Request):
+async def logout(request: Request, db: Session = Depends(get_db)):
     # Clear user session from Redis
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
         token = auth_header.split(" ")[1]
+        user_session = None
+        
+        try:
+            # 获取用户信息用于记录日志
+            user_session = AuthService.get_user_session(token)
+        except Exception:
+            pass
+            
+        if user_session and hasattr(user_session, 'staff_id') and hasattr(user_session, 'username'):
+            try:
+                # 记录登出操作日志
+                AdminLogService.log_admin_action(
+                    db=db,
+                    request=request,
+                    user_session=user_session,
+                    action_type=AdminActionType.OTHER,
+                    resource_type="auth",
+                    description=f"用户 {user_session.username}({user_session.staff_id}) 登出系统"
+                )
+            except Exception as e:
+                # 记录日志失败不应影响主要业务逻辑
+                debug(f"记录登出日志失败: {str(e)}")
+        
         AuthService.delete_user_session(token)
     
     params = {

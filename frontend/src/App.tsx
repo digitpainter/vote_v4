@@ -22,6 +22,7 @@ import ActivitiesPage from './pages/admin/ActivitiesPage';
 import CandidatesPage from './pages/admin/CandidatesPage';
 import DataPage from './pages/admin/DataPage';
 import AdminsPage from './pages/admin/AdminsPage';
+import AdminLogsPage from './pages/admin/AdminLogsPage';
 
 function App() {
 
@@ -56,6 +57,11 @@ function App() {
                 <Route path="candidates" element={<CandidatesPage />} />
                 <Route path="data" element={<DataPage />} />
                 <Route path="admins" element={<AdminsPage />} />
+                <Route path="logs" element={
+                  <RoleBasedRoute adminTypes={[AdminType.SCHOOL]}>
+                    <AdminLogsPage />
+                  </RoleBasedRoute>
+                } />
               </Route>
               
               <Route path="/" element={
