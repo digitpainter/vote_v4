@@ -62,7 +62,7 @@ export function ActivityList() {
           
           <div
             key={activity.id}
-            style={{marginBottom: '36px', marginTop: '30px'}}
+            className = "mt-8 mb-8"
           >
             <CandidateGrid 
               activity={activity} 
@@ -70,7 +70,7 @@ export function ActivityList() {
               refreshTrigger={refreshTrigger}
             />
           </div>
-          <div className="mt-8">
+          <div className="mt-8 mb-8">
             <CandidateTable
               candidates={candidates}
               activity={activity}
