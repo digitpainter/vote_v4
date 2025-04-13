@@ -8,7 +8,9 @@ import {
   TeamOutlined,
   DownloadOutlined,
   DashboardOutlined,
-  FileTextOutlined
+  FileTextOutlined,
+  AuditOutlined,
+  FormOutlined
 } from '@ant-design/icons';
 
 // 管理后台菜单项
@@ -32,6 +34,11 @@ export const adminMenuItems = [
     key: 'admins',
     icon: <TeamOutlined />,
     label: <Link to="/admin/admins">管理员权限</Link>,
+  },
+  {
+    key: 'applications',
+    icon: <AuditOutlined />,
+    label: <Link to="/admin/applications">权限申请审核</Link>,
   },
   {
     key: 'data',
@@ -63,6 +70,12 @@ export const getMainMenuItems = (handleMenuClick: () => void, canAccessStats: bo
       key: '2', 
       icon: <BarChartOutlined />,
       label: <Link to="/stats" onClick={handleMenuClick}>统计</Link> 
+    }] : []),
+    // 申请管理员权限菜单项（对所有非管理员用户显示）
+    ...(!isAdmin ? [{ 
+      key: 'admin-application', 
+      icon: <FormOutlined />,
+      label: <Link to="/admin-application" onClick={handleMenuClick}>申请管理员</Link> 
     }] : []),
     // 仅向管理员显示管理选项
     ...(isAdmin ? [{ 

@@ -117,3 +117,24 @@ class AdminLog(Base):
     ip_address: Mapped[str] = mapped_column(String(50), nullable=True)  # IP地址
     user_agent: Mapped[str] = mapped_column(String(200), nullable=True)  # 用户代理
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+class ApplicationStatus(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+class AdminApplication(Base):
+    __tablename__ = "admin_applications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    staff_id: Mapped[str] = mapped_column(String(50), index=True)  # 申请人工号
+    username: Mapped[str] = mapped_column(String(100))  # 申请人用户名
+    admin_type: Mapped[AdminType] = mapped_column(String(10))  # 申请的管理员类型
+    college_id: Mapped[str] = mapped_column(String(50), nullable=True)  # 学院ID（院级管理员必填）
+    college_name: Mapped[str] = mapped_column(String(100), nullable=True)  # 学院名称
+    reason: Mapped[str] = mapped_column(String(500))  # 申请理由
+    status: Mapped[ApplicationStatus] = mapped_column(String(10), default=ApplicationStatus.PENDING)  # 申请状态
+    reviewer_id: Mapped[str] = mapped_column(String(50), nullable=True)  # 审核人工号
+    review_comment: Mapped[str] = mapped_column(String(500), nullable=True)  # 审核意见
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True, onupdate=func.now())

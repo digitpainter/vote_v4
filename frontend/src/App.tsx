@@ -23,6 +23,10 @@ import CandidatesPage from './pages/admin/CandidatesPage';
 import DataPage from './pages/admin/DataPage';
 import AdminsPage from './pages/admin/AdminsPage';
 import AdminLogsPage from './pages/admin/AdminLogsPage';
+import AdminApplicationsPage from './pages/admin/AdminApplicationsPage';
+
+// 导入用户页面
+import AdminApplicationPage from './pages/user/AdminApplicationPage';
 
 function App() {
 
@@ -57,12 +61,28 @@ function App() {
                 <Route path="candidates" element={<CandidatesPage />} />
                 <Route path="data" element={<DataPage />} />
                 <Route path="admins" element={<AdminsPage />} />
+                <Route path="applications" element={
+                  <RoleBasedRoute adminTypes={[AdminType.SCHOOL]}>
+                    <AdminApplicationsPage />
+                  </RoleBasedRoute>
+                } />
                 <Route path="logs" element={
                   <RoleBasedRoute adminTypes={[AdminType.SCHOOL]}>
                     <AdminLogsPage />
                   </RoleBasedRoute>
                 } />
               </Route>
+              
+              {/* 用户申请管理员权限页面 */}
+              <Route path="/admin-application" element={
+                <ProtectedRoute>
+                  <HeaderComponent />
+                  <div className="container mx-auto">
+                    <AdminApplicationPage />
+                  </div>
+                  <FooterComponent />
+                </ProtectedRoute>
+              } />
               
               <Route path="/" element={
                 <ProtectedRoute>

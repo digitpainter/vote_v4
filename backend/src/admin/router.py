@@ -2,8 +2,8 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from sqlalchemy.orm import Session
 from typing import List
 
-from .schemas import AdminCreate, AdminUpdate, AdminResponse
-from .service import AdminService
+from .schemas import AdminCreate, AdminUpdate, AdminResponse, AdminApplicationCreate, AdminApplicationUpdate, AdminApplicationResponse, ApplicationStatus
+from .service import AdminService, AdminApplicationService
 from ..auth.constants import AdminType, UserRole 
 from ..database import get_db
 from ..auth.dependencies import check_roles
@@ -181,5 +181,137 @@ async def delete_administrator(
         )
         
         return {"message": "管理员删除成功"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+# 管理员申请相关路由
+@router.post("/applications/", response_model=AdminApplicationResponse)
+async def create_admin_application(
+    application: AdminApplicationCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+    user_session = Depends(check_roles())
+):
+    """创建管理员申请"""
+    try:
+        result = AdminApplicationService.create_application(
+            db, 
+            application, 
+            user_session.staff_id, 
+            user_session.username
+        )
+        
+        # 记录日志
+        AdminLogService.log_admin_action(
+            db=db,
+            request=request,
+            user_session=user_session,
+            action_type=AdminActionType.CREATE,
+            resource_type="admin_application",
+            resource_id=str(result.id),
+            description=f"创建管理员申请，类型: {application.admin_type}"
+        )
+        
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/applications/me", response_model=List[AdminApplicationResponse])
+async def get_my_applications(
+    request: Request,
+    db: Session = Depends(get_db),
+    user_session = Depends(check_roles())
+):
+    """获取当前用户的申请记录"""
+    applications = AdminApplicationService.get_user_applications(db, user_session.staff_id)
+    
+    # 记录日志
+    AdminLogService.log_admin_action(
+        db=db,
+        request=request,
+        user_session=user_session,
+        action_type=AdminActionType.VIEW,
+        resource_type="admin_applications",
+        description="查看个人管理员申请记录"
+    )
+    
+    return applications
+
+@router.get("/applications/", response_model=List[AdminApplicationResponse])
+async def get_all_applications(
+    status: ApplicationStatus = None,
+    request: Request = None,
+    db: Session = Depends(get_db),
+    user_session = Depends(check_roles(allowed_admin_types=[AdminType.school]))
+):
+    """获取所有申请记录（仅校级管理员可访问）"""
+    applications = AdminApplicationService.get_all_applications(db, status)
+    
+    # 记录日志
+    AdminLogService.log_admin_action(
+        db=db,
+        request=request,
+        user_session=user_session,
+        action_type=AdminActionType.VIEW,
+        resource_type="admin_applications",
+        description=f"查看所有管理员申请记录 {f'(状态: {status})' if status else ''}"
+    )
+    
+    return applications
+
+@router.get("/applications/{application_id}", response_model=AdminApplicationResponse)
+async def get_application(
+    application_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    user_session = Depends(check_roles(allowed_admin_types=[AdminType.school]))
+):
+    """获取申请详情（仅校级管理员可访问）"""
+    application = AdminApplicationService.get_application(db, application_id)
+    if not application:
+        raise HTTPException(status_code=404, detail="申请不存在")
+    
+    # 记录日志
+    AdminLogService.log_admin_action(
+        db=db,
+        request=request,
+        user_session=user_session,
+        action_type=AdminActionType.VIEW,
+        resource_type="admin_application",
+        resource_id=str(application_id),
+        description=f"查看管理员申请详情 (ID: {application_id})"
+    )
+    
+    return application
+
+@router.put("/applications/{application_id}", response_model=AdminApplicationResponse)
+async def update_application(
+    application_id: int,
+    update_data: AdminApplicationUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
+    user_session = Depends(check_roles(allowed_admin_types=[AdminType.school]))
+):
+    """审核申请（仅校级管理员可访问）"""
+    try:
+        result = AdminApplicationService.update_application(
+            db, 
+            application_id, 
+            update_data, 
+            user_session.staff_id
+        )
+        
+        # 记录日志
+        AdminLogService.log_admin_action(
+            db=db,
+            request=request,
+            user_session=user_session,
+            action_type=AdminActionType.UPDATE,
+            resource_type="admin_application",
+            resource_id=str(application_id),
+            description=f"审核管理员申请 (ID: {application_id}), 结果: {update_data.status}"
+        )
+        
+        return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
