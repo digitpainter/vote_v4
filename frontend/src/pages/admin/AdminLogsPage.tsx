@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Card, Typography, Tag, DatePicker, Select, Input, Button, Space, Tooltip } from 'antd';
+import { Table, Card, Typography, Tag, DatePicker, Select, Input, Button, Space, Tooltip, Modal, Descriptions } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import moment from 'moment';
-import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
+import { SearchOutlined, ReloadOutlined, EyeOutlined } from '@ant-design/icons';
 import { getAdminLogs } from '../../api/adminLog';
 import { AdminLog, AdminActionType } from '../../types/adminLog';
 
@@ -37,6 +37,8 @@ const AdminLogsPage: React.FC = () => {
     resource_type: '',
     dateRange: [] as [moment.Moment, moment.Moment] | [],
   });
+  const [detailVisible, setDetailVisible] = useState(false);
+  const [currentLog, setCurrentLog] = useState<AdminLog | null>(null);
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -70,6 +72,11 @@ const AdminLogsPage: React.FC = () => {
       dateRange: [],
     });
     fetchLogs();
+  };
+
+  const showLogDetail = (log: AdminLog) => {
+    setCurrentLog(log);
+    setDetailVisible(true);
   };
 
   const columns: ColumnsType<AdminLog> = [
@@ -129,6 +136,21 @@ const AdminLogsPage: React.FC = () => {
       width: 180,
       render: (text) => moment(text).format('YYYY-MM-DD HH:mm:ss'),
     },
+    {
+      title: '操作',
+      key: 'action',
+      width: 120,
+      render: (_, record) => (
+        <Button 
+          type="primary" 
+          size="small" 
+          icon={<EyeOutlined />} 
+          onClick={() => showLogDetail(record)}
+        >
+          详情
+        </Button>
+      ),
+    }
   ];
 
   return (
@@ -198,6 +220,42 @@ const AdminLogsPage: React.FC = () => {
           showTotal: (total) => `共 ${total} 条记录`,
         }}
       />
+      
+      {/* 详情模态框 */}
+      <Modal
+        title="操作日志详情"
+        open={detailVisible}
+        onCancel={() => setDetailVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setDetailVisible(false)}>
+            关闭
+          </Button>
+        ]}
+        width={700}
+      >
+        {currentLog && (
+          <Descriptions bordered column={1}>
+            <Descriptions.Item label="ID">{currentLog.id}</Descriptions.Item>
+            <Descriptions.Item label="管理员">
+              {currentLog.admin_name} ({currentLog.admin_type})
+            </Descriptions.Item>
+            <Descriptions.Item label="管理员ID">{currentLog.admin_id}</Descriptions.Item>
+            <Descriptions.Item label="操作类型">
+              <Tag color={actionTypeColors[currentLog.action_type] || 'default'}>
+                {actionTypeLabels[currentLog.action_type] || currentLog.action_type}
+              </Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="资源类型">{currentLog.resource_type}</Descriptions.Item>
+            <Descriptions.Item label="资源ID">{currentLog.resource_id || '无'}</Descriptions.Item>
+            <Descriptions.Item label="操作描述">{currentLog.description}</Descriptions.Item>
+            <Descriptions.Item label="IP地址">{currentLog.ip_address}</Descriptions.Item>
+            <Descriptions.Item label="用户代理">{currentLog.user_agent || '无'}</Descriptions.Item>
+            <Descriptions.Item label="操作时间">
+              {moment(currentLog.created_at).format('YYYY-MM-DD HH:mm:ss')}
+            </Descriptions.Item>
+          </Descriptions>
+        )}
+      </Modal>
     </div>
   );
 };
