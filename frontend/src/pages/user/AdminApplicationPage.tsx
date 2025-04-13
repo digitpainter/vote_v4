@@ -189,9 +189,9 @@ const AdminApplicationPage: React.FC = () => {
         您可以申请成为校级管理员或院级管理员。申请提交后将由校级管理员审核。
       </Paragraph>
       
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
         {/* 申请表单 */}
-        <Card title="提交申请" className="mb-4">
+        <Card title="提交申请" className="mb-6 shadow-md">
           <Form
             form={form}
             layout="vertical"
@@ -206,6 +206,11 @@ const AdminApplicationPage: React.FC = () => {
                 placeholder="请选择申请类型" 
                 onChange={handleTypeChange}
                 disabled={hasPendingApplication}
+                showSearch
+                optionFilterProp="children"
+                filterOption={(input, option) => 
+                  (option?.children as unknown as string).toLowerCase().includes(input.toLowerCase())
+                }
               >
                 <Option value={AdminType.SCHOOL}>校级管理员</Option>
                 <Option value={AdminType.COLLEGE}>院级管理员</Option>
@@ -272,7 +277,7 @@ const AdminApplicationPage: React.FC = () => {
         </Card>
         
         {/* 申请记录 */}
-        <Card title="我的申请记录" className="mb-4">
+        <Card title="我的申请记录" className="mb-6 shadow-md">
           <Table 
             dataSource={applications} 
             columns={columns} 

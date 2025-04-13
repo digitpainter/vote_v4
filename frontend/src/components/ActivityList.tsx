@@ -37,7 +37,7 @@ export function ActivityList() {
     <div className="px-4 md:px-24">
       {activeActivities.map((activity) => (
         <div key={activity.id}>
-          <Card className='mt-[-40px] z-[10]'>
+          <Card className='mt-[-40px] z-[10] mb-8'>
             <div className="flex max-md:flex-col md:flex-row gap-4 mb-6">
               <IconRow
                 icon="/image/start_icon.svg"
@@ -56,11 +56,13 @@ export function ActivityList() {
               />
             </div>
           </Card>
-
-
+          
+          {/* 分割线 */}
+          <div className="my-6 border-t border-gray-200 w-full mx-auto max-w-5xl" />
+          
           <div
             key={activity.id}
-            style={{marginBottom: '24px'}}
+            style={{marginBottom: '36px', marginTop: '30px'}}
           >
             <CandidateGrid 
               activity={activity} 
