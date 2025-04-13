@@ -47,6 +47,7 @@ import { getAllCandidates, updateCandidate, createCandidate, deleteCandidate, re
 import { getAllCollegeInfo, CollegeInfo, getCollegeNameById } from '../../api/college';
 import { Activity } from '../../types/activity';
 import { useTableSearch } from '../../components/TableSearch';
+import TiptapEditor from '../../components/TiptapEditor';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -97,6 +98,9 @@ export default function CandidatesPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string>('');
   const { getColumnSearchProps } = useTableSearch<Candidate>();
+  const [bioContent, setBioContent] = useState<string>('');
+  const [quoteContent, setQuoteContent] = useState<string>('');
+  const [reviewContent, setReviewContent] = useState<string>('');
 
   // 获取候选人数据并更新学院名称
   const fetchCandidates = async () => {
@@ -299,6 +303,15 @@ export default function CandidatesPage() {
       dataIndex: 'bio',
       key: 'bio',
       ellipsis: true,
+      render: (bio) => {
+        // 创建临时DOM元素解析HTML
+        const div = document.createElement('div');
+        div.innerHTML = bio;
+        // 提取纯文本内容
+        const text = div.textContent || div.innerText || '';
+        // 限制显示长度
+        return text.length > 50 ? `${text.substring(0, 50)}...` : text;
+      }
     },
     {
       title: '参与活动',
@@ -363,6 +376,12 @@ export default function CandidatesPage() {
     setCurrentCandidate(null);
     form.resetFields();
     setFileList([]);
+    
+    // 重置富文本编辑器的状态
+    setBioContent('');
+    setQuoteContent('');
+    setReviewContent('');
+    
     setIsModalVisible(true);
   };
 
@@ -370,15 +389,19 @@ export default function CandidatesPage() {
   const handleEdit = (candidate: Candidate) => {
     setModalType('edit');
     setCurrentCandidate(candidate);
+    
+    // 设置富文本编辑器的初始值
+    setBioContent(candidate.bio || '');
+    setQuoteContent(candidate.quote || '');
+    setReviewContent(candidate.review || '');
+    
     form.setFieldsValue({
       name: candidate.name,
       college_id: candidate.college_id,
-      bio: candidate.bio,
       college_name: getCollegeNameById(collegeInfoList, candidate.college_id),
-      quote: candidate.quote,
-      review: candidate.review,
       video_url: candidate.video_url
     });
+    
     setFileList([
       {
         uid: '-1',
@@ -496,9 +519,9 @@ export default function CandidatesPage() {
         college_id: values.college_id,
         college_name: collegeName,
         photo: photoUrl,
-        bio: values.bio,
-        quote: values.quote,
-        review: values.review,
+        bio: bioContent,
+        quote: quoteContent,
+        review: reviewContent,
         video_url: values.video_url
       };
       
@@ -574,7 +597,7 @@ export default function CandidatesPage() {
         onCancel={handleCancel}
         okText={modalType === 'create' ? '创建' : '保存'}
         cancelText="取消"
-        width={600}
+        width={700}
       >
         <Form
           form={form}
@@ -615,25 +638,37 @@ export default function CandidatesPage() {
           </Form.Item>
           
           <Form.Item
-            name="bio"
             label="个人简介"
             rules={[{ required: true, message: '请输入个人简介' }]}
           >
-            <TextArea rows={4} placeholder="请输入个人简介" />
+            <TiptapEditor 
+              content={bioContent} 
+              onChange={setBioContent}
+              placeholder="请输入个人简介"
+              style={{ minHeight: '150px' }}
+            />
           </Form.Item>
           
           <Form.Item
-            name="quote"
             label="个人格言"
           >
-            <Input placeholder="请输入个人格言" />
+            <TiptapEditor 
+              content={quoteContent} 
+              onChange={setQuoteContent}
+              placeholder="请输入个人格言"
+              style={{ minHeight: '100px' }}
+            />
           </Form.Item>
           
           <Form.Item
-            name="review"
             label="评价"
           >
-            <TextArea rows={3} placeholder="请输入评价" />
+            <TiptapEditor 
+              content={reviewContent} 
+              onChange={setReviewContent}
+              placeholder="请输入评价"
+              style={{ minHeight: '120px' }}
+            />
           </Form.Item>
           
           <Form.Item
@@ -708,8 +743,14 @@ export default function CandidatesPage() {
                 </div>
                 <div className="mb-4">
                   <Text strong>个人简介：</Text>
-                  <Paragraph>{currentCandidate.bio}</Paragraph>
+                  <TiptapEditor content={currentCandidate.bio || ''} readOnly={true} onChange={() => {}} />
                 </div>
+                {currentCandidate.quote && (
+                  <div className="mb-4">
+                    <Text strong>个人格言：</Text>
+                    <TiptapEditor content={currentCandidate.quote} readOnly={true} onChange={() => {}} />
+                  </div>
+                )}
                 
                 {/* 关联活动部分 */}
                 <div className="mb-4">

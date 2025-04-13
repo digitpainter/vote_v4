@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, DateTime, Integer, String, Column, UniqueConstraint, Boolean
+from sqlalchemy import ForeignKey, DateTime, Integer, String, Column, UniqueConstraint, Boolean, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from datetime import datetime
@@ -53,10 +53,10 @@ class Candidate(Base):
     name: Mapped[str] = mapped_column(String(50))
     college_id: Mapped[str] = mapped_column(String(50))
     photo: Mapped[str] = mapped_column(String(200), server_default='https://via.placeholder.com/150')
-    bio: Mapped[str] = mapped_column(String(500))
+    bio: Mapped[str] = mapped_column(Text)
+    quote: Mapped[str] = mapped_column(Text, nullable=True)
+    review: Mapped[str] = mapped_column(Text, nullable=True)
     college_name: Mapped[str] = mapped_column(String(100))
-    quote: Mapped[str] = mapped_column(String(200), nullable=True)
-    review: Mapped[str] = mapped_column(String(500), nullable=True)
     video_url: Mapped[str] = mapped_column(String(200), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     votes: Mapped["Vote"] = relationship("Vote", back_populates="candidate")
@@ -115,7 +115,7 @@ class AdminLog(Base):
     action_type: Mapped[AdminActionType] = mapped_column(String(20))  # 操作类型
     resource_type: Mapped[str] = mapped_column(String(50))  # 资源类型，如activity，candidate等
     resource_id: Mapped[str] = mapped_column(String(50), nullable=True)  # 资源ID
-    description: Mapped[str] = mapped_column(String(500))  # 操作描述
+    description: Mapped[str] = mapped_column(Text)  # 操作描述
     ip_address: Mapped[str] = mapped_column(String(50), nullable=True)  # IP地址
     user_agent: Mapped[str] = mapped_column(String(200), nullable=True)  # 用户代理
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

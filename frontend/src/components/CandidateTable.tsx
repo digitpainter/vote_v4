@@ -7,6 +7,7 @@ import { BASE64_PLACEHOLDER } from '../constants/images'
 import { useActivity } from '../contexts/ActivityContext';
 import { getActivityVotes } from "../api/vote"
 import { getAllCollegeInfo, CollegeInfo, getCollegeNameById } from '../api/college';
+import DOMPurify from 'dompurify';
 
 type CandidateTableProps = {
   candidates: Candidate[];
@@ -126,7 +127,7 @@ export function CandidateTable({
                 className="text-sm whitespace-pre-wrap"
                 ellipsis={{ rows: 5 }}
               >
-                {record.bio}
+                <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(record.bio) }} />
               </Typography.Paragraph>
             </div>
           </div>

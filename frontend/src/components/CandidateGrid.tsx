@@ -5,6 +5,7 @@ import { BASE64_PLACEHOLDER } from '../constants/images'
 import { useState, useEffect } from 'react';
 import { getAllCollegeInfo, CollegeInfo, getCollegeNameById } from '../api/college';
 import { useActivity } from '../contexts/ActivityContext';
+import DOMPurify from 'dompurify';
 
 type CandidateGridProps = {
   activity: Activity;
@@ -83,7 +84,7 @@ export function CandidateGrid({ activity, candidates: initialCandidates, refresh
                     ellipsis={{rows: 3, expandable: true}}
                     className="!text-gray-600 !mb-4"
                   >
-                    {candidate.bio}
+                    <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(candidate.bio) }} />
                   </Typography.Paragraph>
                 </div>
               </Col>
