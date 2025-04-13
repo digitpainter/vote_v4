@@ -18,7 +18,7 @@ export const getAdminLogs = async (params: AdminLogQuery = {}): Promise<AdminLog
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     return response.data;
   } catch (error) {

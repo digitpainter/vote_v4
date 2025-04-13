@@ -27,7 +27,7 @@ export const getAdmins = async (skip = 0, limit = 100): Promise<Admin[]> => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     return response.data;
   } catch (error) {
@@ -52,7 +52,7 @@ export const getAdmin = async (stuffId: string): Promise<Admin> => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     return response.data;
   } catch (error) {
@@ -77,7 +77,7 @@ export const createAdmin = async (admin: AdminCreate): Promise<Admin> => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     return response.data;
   } catch (error) {
@@ -103,7 +103,7 @@ export const updateAdmin = async (stuffId: string, admin: AdminUpdate): Promise<
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     return response.data;
   } catch (error) {
@@ -128,7 +128,7 @@ export const deleteAdmin = async (stuffId: string): Promise<boolean> => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     return true;
   } catch (error) {
@@ -153,7 +153,7 @@ export const createAdminApplication = async (application: AdminApplicationCreate
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      // withCredentials: true
+      //withCredentials: true
     });
     return response.data;
   } catch (error) {
@@ -176,7 +176,7 @@ export const getMyApplications = async (): Promise<AdminApplication[]> => {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      // withCredentials: true
+      //withCredentials: true
     });
     return response.data;
   } catch (error) {
@@ -201,7 +201,7 @@ export const getAllApplications = async (status?: ApplicationStatus): Promise<Ad
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      // withCredentials: true
+      //withCredentials: true
     });
     return response.data;
   } catch (error) {
@@ -227,7 +227,7 @@ export const reviewApplication = async (id: number, updateData: AdminApplication
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      // withCredentials: true
+      //withCredentials: true
     });
     return response.data;
   } catch (error) {

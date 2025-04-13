@@ -9,7 +9,7 @@ interface BackendErrorResponse {
 const instance = axios.create({
   baseURL: "localhost:5173",
   timeout: 10000,
-  withCredentials: true
+  // withCredentials: true
 });
 
 // 请求拦截器

@@ -17,7 +17,7 @@ export const handleCasCallback = async (ticket: string) => {
       headers: {
         'Content-Type': 'application/json'
       },
-      withCredentials: true
+      // withCredentials: true
     });
     return response.data;
   } catch (error) {
@@ -42,7 +42,7 @@ export const fetchCurrentUser = async () => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     return response.data;
   } catch (error) {

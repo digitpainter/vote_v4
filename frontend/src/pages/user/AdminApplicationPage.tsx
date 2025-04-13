@@ -9,6 +9,7 @@ import {
   AdminApplication 
 } from '../../types/admin';
 import { createAdminApplication, getMyApplications } from '../../api/admin';
+import { fetchColleges } from '../../api/data';
 
 const { Title, Paragraph } = Typography;
 const { Option } = Select;
@@ -64,14 +65,32 @@ const AdminApplicationPage: React.FC = () => {
   // 组件加载时获取申请记录和学院数据
   useEffect(() => {
     fetchMyApplications();
-    // 模拟学院数据，实际项目中应通过API获取
-    setCollegeOptions([
-      { id: '001', name: '计算机学院' },
-      { id: '002', name: '电子工程学院' },
-      { id: '003', name: '机械工程学院' },
-      { id: '004', name: '理学院' },
-      { id: '005', name: '文学院' }
-    ]);
+    
+    // 使用实际接口获取学院列表
+    const getColleges = async () => {
+      try {
+        const collegesData = await fetchColleges();
+        // 剔除"全部学院"选项，并转换数据格式
+        const filteredColleges = collegesData
+          .filter((college: {YXDM: string, YXDM_TEXT: string}) => college.YXDM !== 'all')
+          .map((college: {YXDM: string, YXDM_TEXT: string}) => ({
+            id: college.YXDM,
+            name: college.YXDM_TEXT
+          }));
+        setCollegeOptions(filteredColleges);
+      } catch (error) {
+        message.error('获取学院列表失败');
+        console.error('获取学院列表失败:', error);
+        // 设置默认学院数据作为备选
+        setCollegeOptions([
+          { id: '001', name: '计算机学院' },
+          { id: '002', name: '电子工程学院' },
+          { id: '003', name: '机械工程学院' }
+        ]);
+      }
+    };
+    
+    getColleges();
   }, []);
   
   // 提交申请
@@ -202,6 +221,11 @@ const AdminApplicationPage: React.FC = () => {
                 <Select 
                   placeholder="请选择所属学院"
                   disabled={hasPendingApplication}
+                  showSearch
+                  optionFilterProp="children"
+                  filterOption={(input, option) => 
+                    (option?.children as unknown as string).toLowerCase().includes(input.toLowerCase())
+                  }
                 >
                   {collegeOptions.map(college => (
                     <Option key={college.id} value={college.id}>

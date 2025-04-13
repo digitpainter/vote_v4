@@ -51,7 +51,7 @@ export const fetchActivities = async () => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     return response.data;
   } catch (error) {
@@ -75,7 +75,7 @@ export const fetchColleges = async () => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     return response.data;
   } catch (error) {
@@ -107,7 +107,7 @@ export const fetchPreviewData = async (params: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     return response.data;
   } catch (error) {
@@ -140,7 +140,7 @@ export const exportData = async (params: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     return response.data;
   } catch (error) {

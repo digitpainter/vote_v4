@@ -88,6 +88,6 @@ class AuthService:
             return 'graduate'
         elif re.match(r'^B.{8}$', username):
             return 'phd'
-        elif re.match(r'^\d{7}$', username):
+        elif re.match(r'^\d{8}$', username):
             return 'teacher'
         return 'unknown'

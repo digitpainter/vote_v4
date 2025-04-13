@@ -45,7 +45,7 @@ export const fetchTotalStats = async (): Promise<TotalStatsResponse> => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        withCredentials: true
+        // withCredentials: true
       }
     );
     return response.data;

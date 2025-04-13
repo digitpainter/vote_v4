@@ -48,7 +48,7 @@ export const getAllCollegeInfo = async (): Promise<CollegeInfo[]> => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     
     return response.data;
@@ -81,7 +81,7 @@ export const fetchCollegeMapping = async () => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      withCredentials: true
+      // withCredentials: true
     });
     
     return response.data;
