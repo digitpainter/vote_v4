@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { useEffect, useState } from 'react';
 import { adminMenuItems } from '../constants/menuItems';
+import { FooterComponent } from '../components/FooterComponent';
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Title, Text } = Typography;
@@ -80,9 +81,7 @@ export default function AdminLayout() {
             <Outlet />
           </div>
         </Content>
-        <Footer className="text-center text-gray-500">
-          投票系统管理后台 ©{new Date().getFullYear()} 版权所有
-        </Footer>
+        <FooterComponent />
       </Layout>
     </Layout>
   );

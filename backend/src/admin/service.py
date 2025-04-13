@@ -19,6 +19,7 @@ class AdminService:
         
         db_admin = Administrator(
             stuff_id=admin.stuff_id,
+            name=admin.name,
             admin_type=admin.admin_type,
             college_id=admin.college_id,
             college_name=admin.college_name
@@ -46,17 +47,21 @@ class AdminService:
         return db.query(Administrator).all()
 
     @staticmethod
-    def update_admin(db: Session, stuff_id: str, admin_update: AdminUpdate) -> Optional[Administrator]:
+    def update_admin(db: Session, stuff_id: str, admin: AdminUpdate) -> Optional[Administrator]:
         db_admin = AdminService.get_admin(db, stuff_id)
         if not db_admin:
             return None
-
-        if admin_update.admin_type == AdminType.COLLEGE and not (admin_update.college_id and admin_update.college_name):
+            
+        if admin.admin_type == AdminType.COLLEGE and not (admin.college_id and admin.college_name):
             raise ValueError("College ID and name are required for college administrators")
-
-        for field, value in admin_update.dict(exclude_unset=True).items():
-            setattr(db_admin, field, value)
-
+        
+        # 更新管理员属性
+        if admin.name is not None:
+            db_admin.name = admin.name
+        db_admin.admin_type = admin.admin_type
+        db_admin.college_id = admin.college_id
+        db_admin.college_name = admin.college_name
+        
         try:
             db.commit()
             db.refresh(db_admin)
@@ -168,6 +173,7 @@ class AdminApplicationService:
                 try:
                     admin_data = AdminCreate(
                         stuff_id=application.staff_id,
+                        name=application.username,
                         admin_type=application.admin_type,
                         college_id=application.college_id,
                         college_name=application.college_name

@@ -8,11 +8,19 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from ..database import SessionLocal
 from ..models import Administrator
+from .config import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_DB, REDIS_SESSION_EXPIRE
 import os
 
 
 class AuthService:
-    redis_client = redis.Redis(host='localhost', port=6379, db=0)
+    # 使用配置文件创建Redis连接
+    # 这个初始实例将在应用启动时被InitService替换为使用config中配置的实例
+    redis_client = redis.Redis(
+        host=REDIS_HOST, 
+        port=REDIS_PORT, 
+        password=REDIS_PASSWORD if REDIS_PASSWORD else None,
+        db=REDIS_DB
+    )
     
     # Configure logging
     logger = logging.getLogger('auth_service')
@@ -47,7 +55,8 @@ class AuthService:
             admin_college_id=admin_college_id,
             admin_college_name=admin_college_name,
         )
-        cls.redis_client.set(f'session:{access_token}', json.dumps(session.dict()), ex=60)
+        # 使用配置文件中的过期时间
+        cls.redis_client.set(f'session:{access_token}', json.dumps(session.dict()), ex=REDIS_SESSION_EXPIRE)
         
         # Log successful login
         cls.logger.info(

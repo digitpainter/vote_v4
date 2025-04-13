@@ -12,6 +12,7 @@ export enum ApplicationStatus {
 export interface Admin {
   id: number;
   stuff_id: string;
+  name: string;
   admin_type: AdminType;
   college_id?: string;
   college_name?: string;
@@ -20,12 +21,14 @@ export interface Admin {
 
 export interface AdminCreate {
   stuff_id: string;
+  name: string;
   admin_type: AdminType;
   college_id?: string;
   college_name?: string;
 }
 
 export interface AdminUpdate {
+  name?: string;
   admin_type: AdminType;
   college_id?: string;
   college_name?: string;

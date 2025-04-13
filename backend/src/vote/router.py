@@ -171,7 +171,6 @@ def update_activity(
 ):
     try:
         result = VoteService.update_activity(db, activity_id, activity)
-        
         # 记录操作日志
         AdminLogService.log_admin_action(
             db=db,
@@ -180,7 +179,7 @@ def update_activity(
             action_type=AdminActionType.UPDATE,
             resource_type="activity",
             resource_id=str(activity_id),
-            description=f"更新投票活动 {result['title']}"
+            description=f"更新投票活动 {result['title']} 开始时间 {result['start_time']} 结束时间 {result['end_time']} 是否激活 {result['is_active']} 最大投票数 {result['max_votes']} 最小投票数 {result['min_votes']} 候选人 {result['candidate_ids']}"
         )
         
         return result
@@ -256,7 +255,7 @@ def update_candidate(
             action_type=AdminActionType.UPDATE,
             resource_type="candidate",
             resource_id=str(candidate_id),
-            description=f"更新候选人 {db_candidate.name} 的信息"
+            description=f"更新候选人 {db_candidate.name} 的信息 学院: {db_candidate.college_name} 照片: {db_candidate.photo} 简介: {db_candidate.bio} 引言: {db_candidate.quote} 视频链接: {db_candidate.video_url}"
         )
         
         vote_count = db.query(Vote).filter(Vote.candidate_id == candidate_id).count()
@@ -410,7 +409,6 @@ def remove_candidate_from_activity(
 async def export_vote_data(
     activity_id: int = Query(..., description="活动ID"),
     export_type: str = Query(..., description="导出数据类型"),
-    format: str = Query(..., description="导出格式"),
     college_id: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -441,7 +439,7 @@ async def export_vote_data(
             action_type=AdminActionType.EXPORT,
             resource_type=f"activity_{export_type}",
             resource_id=str(activity_id),
-            description=f"导出活动 {activity_title} 的{export_type}数据，格式: {format}"
+            description=f"导出活动 {activity_title} 的{export_type}数据"
         )
         
         if export_type == 'vote_records':

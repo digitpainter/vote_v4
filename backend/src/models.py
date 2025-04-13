@@ -4,6 +4,7 @@ from sqlalchemy.sql import func
 from datetime import datetime
 from .database import Base
 from enum import Enum
+from sqlalchemy.orm import Session
 
 class VoteActivity(Base):
     __tablename__ = "vote_activities"
@@ -86,6 +87,7 @@ class Administrator(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     stuff_id: Mapped[str] = mapped_column(String(50), unique=True)
+    name: Mapped[str] = mapped_column(String(50))
     admin_type: Mapped[AdminType] = mapped_column(String(10))
     college_id: Mapped[str] = mapped_column(String(50), nullable=True)
     college_name: Mapped[str] = mapped_column(String(100), nullable=True)
@@ -138,3 +140,57 @@ class AdminApplication(Base):
     review_comment: Mapped[str] = mapped_column(String(500), nullable=True)  # 审核意见
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True, onupdate=func.now())
+
+class InitService:
+    @staticmethod
+    def init_default_admin(db: Session):
+        """初始化默认管理员"""
+        from sqlalchemy.orm import Session
+        from .models import Administrator, AdminType
+        
+        admin = db.query(Administrator).filter(Administrator.stuff_id == "70206867").first()
+        if not admin:
+            default_admin = Administrator(
+                stuff_id="70206867",
+                name="钟佳",
+                admin_type=AdminType.SCHOOL
+            )
+            db.add(default_admin)
+            db.commit()
+    
+    @staticmethod
+    def init_redis():
+        """初始化Redis连接"""
+        import redis
+        from .auth.config import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_DB
+        
+        try:
+            # 使用配置文件中的设置创建Redis连接
+            redis_client = redis.Redis(
+                host=REDIS_HOST, 
+                port=REDIS_PORT, 
+                password=REDIS_PASSWORD if REDIS_PASSWORD else None,
+                db=REDIS_DB
+            )
+            
+            # 测试连接
+            redis_client.ping()
+            print(f"Redis连接成功: {REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}")
+            
+            # 更新AuthService中的redis_client实例
+            from .auth.service import AuthService
+            AuthService.redis_client = redis_client
+            
+            return redis_client
+        except Exception as e:
+            print(f"Redis连接失败: {str(e)}")
+            return None
+    
+    @staticmethod
+    def init_all(db: Session):
+        """执行所有初始化操作"""
+        # 初始化默认管理员
+        InitService.init_default_admin(db)
+        
+        # 初始化Redis
+        InitService.init_redis()

@@ -91,6 +91,7 @@ const AdminsPage: React.FC = () => {
     setEditingAdmin(admin);
     form.setFieldsValue({
       stuff_id: admin.stuff_id,
+      name: admin.name,
       admin_type: admin.admin_type,
       college_id: admin.college_id,
       college_name: admin.college_name
@@ -209,6 +210,15 @@ const AdminsPage: React.FC = () => {
       })
     },
     {
+      title: '姓名',
+      dataIndex: 'name',
+      key: 'name',
+      ...getColumnSearchProps({
+        dataIndex: 'name',
+        placeholder: '搜索管理员姓名'
+      })
+    },
+    {
       title: '管理员类型',
       dataIndex: 'admin_type',
       key: 'admin_type',
@@ -317,9 +327,23 @@ const AdminsPage: React.FC = () => {
           <Form.Item
             name="stuff_id"
             label="工号"
-            rules={[{ required: true, message: '请输入工号' }]}
+            rules={[
+              { required: true, message: '请输入工号' },
+              { max: 20, message: '工号不能超过20个字符' }
+            ]}
           >
             <Input placeholder="请输入工号" disabled={!!editingAdmin} />
+          </Form.Item>
+          
+          <Form.Item
+            name="name"
+            label="姓名"
+            rules={[
+              { required: true, message: '请输入管理员姓名' },
+              { max: 50, message: '姓名不能超过50个字符' }
+            ]}
+          >
+            <Input placeholder="请输入管理员姓名" />
           </Form.Item>
 
           <Form.Item

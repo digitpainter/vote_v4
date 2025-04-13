@@ -41,7 +41,7 @@ async def create_administrator(
             action_type=AdminActionType.CREATE,
             resource_type="administrator",
             resource_id=admin.stuff_id,
-            description=f"创建管理员 {admin.stuff_id}，类型: {admin.admin_type}"
+            description=f"创建管理员 {admin.stuff_id} 名字 {admin.name}，类型: {admin.admin_type}"
         )
         
         return new_admin
@@ -140,7 +140,7 @@ async def update_administrator(
             action_type=AdminActionType.UPDATE,
             resource_type="administrator",
             resource_id=stuff_id,
-            description=f"更新管理员 {stuff_id} 的信息"
+            description=f"更新管理员 {stuff_id} - 名字 {admin.name} 的信息"
         )
         
         return updated_admin
@@ -177,7 +177,7 @@ async def delete_administrator(
             action_type=AdminActionType.DELETE,
             resource_type="administrator",
             resource_id=stuff_id,
-            description=f"删除管理员 {stuff_id}"
+            description=f"删除管理员 {stuff_id} - 名字 {admin.name}"
         )
         
         return {"message": "管理员删除成功"}
@@ -209,7 +209,7 @@ async def create_admin_application(
             action_type=AdminActionType.CREATE,
             resource_type="admin_application",
             resource_id=str(result.id),
-            description=f"创建管理员申请，类型: {application.admin_type}"
+            description=f"创建管理员申请，类型: {application.admin_type} 学院: {application.college_name} 理由: {application.reason} 申请人: {user_session.username}"
         )
         
         return result

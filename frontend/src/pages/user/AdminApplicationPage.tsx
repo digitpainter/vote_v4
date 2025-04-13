@@ -150,7 +150,7 @@ const AdminApplicationPage: React.FC = () => {
       title: '学院',
       dataIndex: 'college_name',
       key: 'college_name',
-      render: (text: string) => text || '不适用'
+      render: (text: string) => text || '-'
     },
     {
       title: '申请时间',

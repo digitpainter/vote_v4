@@ -11,7 +11,18 @@ Base = declarative_base()
 
 # Create all tables
 def init_db():
+    # 创建所有表
     Base.metadata.create_all(bind=engine)
+    
+    # 导入InitService，在函数内部导入避免循环导入
+    from .models import InitService
+    
+    # 初始化默认数据
+    db = SessionLocal()
+    try:
+        InitService.init_all(db)
+    finally:
+        db.close()
 
 # Dependency to get database session
 def get_db():
