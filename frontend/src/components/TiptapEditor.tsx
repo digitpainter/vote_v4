@@ -17,7 +17,7 @@ import Color from '@tiptap/extension-color';
 import TextStyle from '@tiptap/extension-text-style';
 import Typography from '@tiptap/extension-typography';
 import FontFamily from '@tiptap/extension-font-family';
-import FontSize from '@tiptap/extension-font-size';
+import { FontSize } from './extensions/FontSizeExtension';
 import { Button, Tooltip, Space, Divider, Dropdown, Select, ColorPicker, Popover, message, Input } from 'antd';
 import { 
   BoldOutlined, 
@@ -149,6 +149,9 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
     ],
     content: content || '',
     editable: !readOnly,
+    onUpdate: ({ editor }) => {
+      onChange(editor.getHTML());
+    },
     editorProps: {
       attributes: {
         class: 'tiptap-editor-content',
