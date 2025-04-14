@@ -46,6 +46,7 @@ import {
 import './TiptapEditor.css';
 import { uploadImage } from '../api/vote';
 import { debounce } from 'lodash';
+import { FontSize } from './extensions/FontSizeExtension';
 
 interface TiptapEditorProps {
   content: string;
