@@ -16,6 +16,8 @@ import Highlight from '@tiptap/extension-highlight';
 import Color from '@tiptap/extension-color';
 import TextStyle from '@tiptap/extension-text-style';
 import Typography from '@tiptap/extension-typography';
+import FontFamily from '@tiptap/extension-font-family';
+import FontSize from '@tiptap/extension-font-size';
 import { Button, Tooltip, Space, Divider, Dropdown, Select, ColorPicker, Popover, message, Input } from 'antd';
 import { 
   BoldOutlined, 
@@ -44,6 +46,7 @@ import {
 } from '@ant-design/icons';
 import './TiptapEditor.css';
 import { uploadImage } from '../api/vote';
+import { debounce } from 'lodash';
 
 interface TiptapEditorProps {
   content: string;
@@ -63,6 +66,35 @@ const headingOptions = [
   { label: '标题4', value: 'h4' },
   { label: '标题5', value: 'h5' },
   { label: '标题6', value: 'h6' },
+];
+
+// 字体选项
+const fontOptions = [
+  { label: '默认字体', value: '' },
+  { label: '微软雅黑', value: 'Microsoft YaHei' },
+  { label: '宋体', value: 'SimSun' },
+  { label: '黑体', value: 'SimHei' },
+  { label: '楷体', value: 'KaiTi' },
+  { label: 'Arial', value: 'Arial' },
+  { label: 'Times New Roman', value: 'Times New Roman' },
+  { label: 'Courier New', value: 'Courier New' },
+  { label: 'Georgia', value: 'Georgia' },
+  { label: 'Verdana', value: 'Verdana' },
+];
+
+// 字号选项
+const fontSizeOptions = [
+  { label: '默认', value: '' },
+  { label: '12px', value: '12px' },
+  { label: '14px', value: '14px' },
+  { label: '16px', value: '16px' },
+  { label: '18px', value: '18px' },
+  { label: '20px', value: '20px' },
+  { label: '24px', value: '24px' },
+  { label: '28px', value: '28px' },
+  { label: '32px', value: '32px' },
+  { label: '36px', value: '36px' },
+  { label: '42px', value: '42px' },
 ];
 
 const TiptapEditor: React.FC<TiptapEditorProps> = ({
@@ -112,12 +144,11 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
       TextStyle,
       Color,
       Typography,
+      FontFamily.configure(),
+      FontSize.configure(),
     ],
     content: content || '',
     editable: !readOnly,
-    onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
-    },
     editorProps: {
       attributes: {
         class: 'tiptap-editor-content',
@@ -237,6 +268,22 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
     return 'paragraph';
   };
 
+  // 获取当前激活的字体
+  const getActiveFont = () => {
+    if (!editor) return '';
+    
+    const font = editor.getAttributes('textStyle').fontFamily;
+    return font || '';
+  };
+
+  // 获取当前激活的字号
+  const getActiveFontSize = () => {
+    if (!editor) return '';
+    
+    const fontSize = editor.getAttributes('textStyle').fontSize;
+    return fontSize || '';
+  };
+
   return (
     <div className={`tiptap-editor-container ${className || ''}`} style={style}>
       {!readOnly && (
@@ -249,6 +296,26 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
               style={{ width: 100 }}
               size="small"
               options={headingOptions}
+            />
+            
+            {/* 字体选择 */}
+            <Select
+              value={getActiveFont()}
+              onChange={(value) => editor.chain().focus().setFontFamily(value).run()}
+              style={{ width: 120 }}
+              size="small"
+              options={fontOptions}
+              placeholder="字体"
+            />
+            
+            {/* 字号选择 */}
+            <Select
+              value={getActiveFontSize()}
+              onChange={(value) => editor.chain().focus().setFontSize(value).run()}
+              style={{ width: 80 }}
+              size="small"
+              options={fontSizeOptions}
+              placeholder="字号"
             />
 
             <Divider type="vertical" />

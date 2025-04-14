@@ -231,4 +231,96 @@
 
 .tiptap-editor-container.readonly .tiptap-editor {
   padding: 0;
+}
+
+/* Add font family styles to the end of the file */
+
+/* Font family classes for the dropdown */
+.ant-select-item-option[title="默认字体"] {
+  font-family: inherit;
+}
+
+.ant-select-item-option[title="微软雅黑"] {
+  font-family: "Microsoft YaHei", sans-serif;
+}
+
+.ant-select-item-option[title="宋体"] {
+  font-family: SimSun, serif;
+}
+
+.ant-select-item-option[title="黑体"] {
+  font-family: SimHei, sans-serif;
+}
+
+.ant-select-item-option[title="楷体"] {
+  font-family: KaiTi, cursive;
+}
+
+.ant-select-item-option[title="Arial"] {
+  font-family: Arial, sans-serif;
+}
+
+.ant-select-item-option[title="Times New Roman"] {
+  font-family: "Times New Roman", serif;
+}
+
+.ant-select-item-option[title="Courier New"] {
+  font-family: "Courier New", monospace;
+}
+
+.ant-select-item-option[title="Georgia"] {
+  font-family: Georgia, serif;
+}
+
+.ant-select-item-option[title="Verdana"] {
+  font-family: Verdana, sans-serif;
+}
+
+/* Font preview in the dropdown */
+.tiptap-font-preview {
+  margin-right: 8px;
+  font-size: 14px;
+}
+
+/* Add font size styles to the end of the file */
+
+/* Font size classes for the dropdown */
+.ant-select-item-option[title="12px"] {
+  font-size: 12px;
+}
+
+.ant-select-item-option[title="14px"] {
+  font-size: 14px;
+}
+
+.ant-select-item-option[title="16px"] {
+  font-size: 16px;
+}
+
+.ant-select-item-option[title="18px"] {
+  font-size: 18px;
+}
+
+.ant-select-item-option[title="20px"] {
+  font-size: 20px;
+}
+
+.ant-select-item-option[title="24px"] {
+  font-size: 24px;
+}
+
+.ant-select-item-option[title="28px"] {
+  font-size: 28px;
+}
+
+.ant-select-item-option[title="32px"] {
+  font-size: 32px;
+}
+
+.ant-select-item-option[title="36px"] {
+  font-size: 36px;
+}
+
+.ant-select-item-option[title="42px"] {
+  font-size: 42px;
 } 
