@@ -1,9 +1,6 @@
 import axios from 'axios';
 import { handleApiError } from '../utils/errorHandler';
-
-// API基础路径常量
-const BASE_URL = 'http://localhost:8000';
-const CAS_BASE_URL = 'http://localhost:8001';
+import { API_BASE_URL, CAS_BASE_URL, CAS_CALLBACK_URL } from './config';
 
 /**
  * 处理CAS回调并获取access token
@@ -12,7 +9,7 @@ const CAS_BASE_URL = 'http://localhost:8001';
  */
 export const handleCasCallback = async (ticket: string) => {
   try {
-    const response = await axios.get(`${BASE_URL}/auth/cas-callback`, {
+    const response = await axios.get(`${API_BASE_URL}/auth/cas-callback`, {
       params: { ticket },
       headers: {
         'Content-Type': 'application/json'
@@ -37,7 +34,7 @@ export const handleCasCallback = async (ticket: string) => {
 export const fetchCurrentUser = async () => {
   try {
     const token = localStorage.getItem('token');
-    const response = await axios.get(`${BASE_URL}/auth/users/me`, {
+    const response = await axios.get(`${API_BASE_URL}/auth/users/me`, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
@@ -60,7 +57,7 @@ export const fetchCurrentUser = async () => {
  * @returns CAS登录URL
  */
 export const getCasLoginUrl = () => {
-  return `${CAS_BASE_URL}/login?service=http://localhost:5173/cas-callback`;
+  return `${CAS_BASE_URL}/login?service=${CAS_CALLBACK_URL}`;
 };
 
 /**
