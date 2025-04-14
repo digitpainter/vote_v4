@@ -175,16 +175,42 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
     active?: boolean, 
     icon: React.ReactNode, 
     title: string 
-  }) => (
-    <Tooltip title={title}>
+  }) => {
+    // 将事件处理从内联函数移到独立函数
+    const handleClick = (e: React.MouseEvent) => {
+      // 阻止事件冒泡和默认行为
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // 立即输出调试信息
+      console.log('Button clicked raw:', { title, active });
+      
+      // 确保编辑器获得焦点
+      if (editor) {
+        editor.commands.focus();
+      }
+      
+      // 执行传入的点击处理函数
+      onClick();
+      
+      // 输出执行完成信息
+      console.log('Button action completed:', title);
+    };
+    
+    return (
       <Button
         type={active ? 'primary' : 'default'}
         icon={icon}
-        onClick={onClick}
+        onClick={handleClick}
         size="small"
+        // 添加 onMouseDown 事件处理，可能会更早捕获到点击
+        onMouseDown={(e) => {
+          console.log('Button mousedown:', title);
+          e.preventDefault();
+        }}
       />
-    </Tooltip>
-  );
+    );
+  };
 
   // 插入表格的弹出框内容
   const TableInsertPopover = () => (
