@@ -1,9 +1,7 @@
 import axios from 'axios';
 import { Activity, VoteTrendData } from '../types/activity';
 import { handleApiError } from '../utils/errorHandler';
-
-// API基础路径常量
-const BASE_URL = 'http://localhost:8000';
+import { API_BASE_URL } from './config';
 
 /**
  * 获取所有活动
@@ -11,7 +9,7 @@ const BASE_URL = 'http://localhost:8000';
  */
 export const getAllActivities = async () => {
   try {
-    const response = await axios.get(`${BASE_URL}/vote/activities/`, {
+    const response = await axios.get(`${API_BASE_URL}/vote/activities/`, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -38,7 +36,7 @@ export const getAllActivities = async () => {
  */
 export const updateActivity = async (activityId: number, activityData: any) => {
   try {
-    const response = await axios.put(`${BASE_URL}/vote/activities/${activityId}`, activityData, {
+    const response = await axios.put(`${API_BASE_URL}/vote/activities/${activityId}`, activityData, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -64,7 +62,7 @@ export const updateActivity = async (activityId: number, activityData: any) => {
  */
 export const createActivity = async (activityData: any) => {
   try {
-    const response = await axios.post(`${BASE_URL}/vote/activities/`, activityData, {
+    const response = await axios.post(`${API_BASE_URL}/vote/activities/`, activityData, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -90,7 +88,7 @@ export const createActivity = async (activityData: any) => {
  */
 export const deleteActivity = async (activityId: number) => {
   try {
-    await axios.delete(`${BASE_URL}/vote/activities/${activityId}`, {
+    await axios.delete(`${API_BASE_URL}/vote/activities/${activityId}`, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -115,7 +113,7 @@ export const deleteActivity = async (activityId: number) => {
  */
 export const getAllCandidates = async () => {
   try {
-    const response = await axios.get(`${BASE_URL}/vote/candidates/batch`, {
+    const response = await axios.get(`${API_BASE_URL}/vote/candidates/batch`, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -141,7 +139,7 @@ export const getAllCandidates = async () => {
  */
 export const getCandidatesByIds = async (candidateIds: number[]) => {
   try {
-    const response = await axios.get(`${BASE_URL}/vote/candidates/batch`, {
+    const response = await axios.get(`${API_BASE_URL}/vote/candidates/batch`, {
       params: { 
         candidate_ids: candidateIds.map(id => id.toString())
       },
@@ -171,7 +169,7 @@ export const getCandidatesByIds = async (candidateIds: number[]) => {
  */
 export const updateCandidate = async (candidateId: number, candidateData: any) => {
   try {
-    const response = await axios.put(`${BASE_URL}/vote/candidates/${candidateId}`, candidateData, {
+    const response = await axios.put(`${API_BASE_URL}/vote/candidates/${candidateId}`, candidateData, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -201,7 +199,7 @@ export const uploadCandidateImage = async (candidateId: number, imageFile: File)
     const formData = new FormData();
     formData.append('file', imageFile);
     
-    const response = await axios.post(`${BASE_URL}/vote/candidates/${candidateId}/upload-image`, formData, {
+    const response = await axios.post(`${API_BASE_URL}/vote/candidates/${candidateId}/upload-image`, formData, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
@@ -227,7 +225,7 @@ export const uploadCandidateImage = async (candidateId: number, imageFile: File)
  */
 export const submitVotes = async (activityId: Activity['id'], candidateIds: string[]) => {
   try {
-    const response = await axios.post(`${BASE_URL}/vote/vote/batch`, null, {
+    const response = await axios.post(`${API_BASE_URL}/vote/vote/batch`, null, {
       params: {
         activity_id: activityId.toString(),
         candidate_ids: candidateIds
@@ -257,7 +255,7 @@ export const submitVotes = async (activityId: Activity['id'], candidateIds: stri
  */
 export const getActivityVotes = async (activityId: number) => {
   try {
-    const response = await axios.get(`${BASE_URL}/vote/activities/${activityId}/my-votes`, {
+    const response = await axios.get(`${API_BASE_URL}/vote/activities/${activityId}/my-votes`, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -282,7 +280,7 @@ export const getActivityVotes = async (activityId: number) => {
  */
 export const getActiveStatistics = async () => {
   try {
-    const response = await axios.get(`${BASE_URL}/vote/active-statistics`, {
+    const response = await axios.get(`${API_BASE_URL}/vote/active-statistics`, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -307,7 +305,7 @@ export const getActiveStatistics = async () => {
  */
 export const getVoteTrends = async (): Promise<VoteTrendData> => {
   try {
-    const response = await axios.get(`${BASE_URL}/vote/vote-trends`, {
+    const response = await axios.get(`${API_BASE_URL}/vote/vote-trends`, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -334,7 +332,7 @@ export const getVoteTrends = async (): Promise<VoteTrendData> => {
  */
 export const removeCandidateFromActivity = async (activityId: number, candidateId: number) => {
   try {
-    await axios.delete(`${BASE_URL}/vote/activities/${activityId}/candidates/${candidateId}`, {
+    await axios.delete(`${API_BASE_URL}/vote/activities/${activityId}/candidates/${candidateId}`, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -363,7 +361,7 @@ export const uploadImage = async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append('file', file);
     
-    const response = await axios.post(`${BASE_URL}/vote/upload-image/`, formData, {
+    const response = await axios.post(`${API_BASE_URL}/vote/upload-image/`, formData, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
@@ -388,7 +386,7 @@ export const uploadImage = async (file: File): Promise<string> => {
  */
 export const createCandidate = async (candidateData: any) => {
   try {
-    const response = await axios.post(`${BASE_URL}/vote/candidates/`, candidateData, {
+    const response = await axios.post(`${API_BASE_URL}/vote/candidates/`, candidateData, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -414,7 +412,7 @@ export const createCandidate = async (candidateData: any) => {
  */
 export const deleteCandidate = async (candidateId: number) => {
   try {
-    await axios.delete(`${BASE_URL}/vote/candidates/${candidateId}`, {
+    await axios.delete(`${API_BASE_URL}/vote/candidates/${candidateId}`, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`

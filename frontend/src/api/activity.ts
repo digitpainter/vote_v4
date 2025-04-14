@@ -2,9 +2,7 @@ import axios from 'axios';
 import { handleApiError } from '../utils/errorHandler';
 import { Activity } from '../types/activity';
 import { Candidate } from '../types/candidate';
-
-// API基础路径常量
-const BASE_URL = 'http://localhost:8000';
+import { API_BASE_URL } from './config';
 
 /**
  * 获取当前活跃的活动列表
@@ -12,7 +10,7 @@ const BASE_URL = 'http://localhost:8000';
  */
 export const fetchActiveActivities = async (): Promise<Activity[]> => {
   try {
-    const response = await axios.get(`${BASE_URL}/vote/activities/active/`, {
+    const response = await axios.get(`${API_BASE_URL}/vote/activities/active/`, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -37,7 +35,7 @@ export const fetchActiveActivities = async (): Promise<Activity[]> => {
  */
 export const fetchCandidatesByIds = async (candidateIds: string[]): Promise<Candidate[]> => {
   try {
-    const response = await axios.get(`${BASE_URL}/vote/candidates/batch/`, {
+    const response = await axios.get(`${API_BASE_URL}/vote/candidates/batch/`, {
       params: {
         candidate_ids: candidateIds
       },

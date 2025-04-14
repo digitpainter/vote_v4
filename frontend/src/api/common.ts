@@ -1,7 +1,8 @@
 import { AxiosResponse } from 'axios';
+import { API_BASE_URL } from './config';
 
 // API基础路径常量
-export const API_BASE_URL = 'http://localhost:8000';
+export { API_BASE_URL };
 
 /**
  * 处理API错误
